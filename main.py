@@ -176,7 +176,7 @@ def get_activity_details_df(row, all_columns):
                 "Date": date_val,
                 "Proof": proof_val,
                 "Points": pts
-            })
+             })
 
     if not details: return pd.DataFrame()
     return pd.DataFrame(details)
@@ -473,6 +473,11 @@ df_raw = st.session_state["df"]
 
 if df_raw is not None:
     df = process_and_score_data(df_raw)
+    
+    # --- FILTER TO REMOVE "UNKNOWN" STUDENTS COMPLETELY ---
+    if df is not None:
+        df = df[df['Category_Main'] != 'General']
+    # ------------------------------------------------------
     
     if df is not None and not df.empty:
         
