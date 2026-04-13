@@ -13,7 +13,7 @@ import numpy as np
 st.set_page_config(
     page_title="SmarTrack Dashboard",
     layout="wide",
-    page_icon="🌿",
+    page_icon="🎓",
     initial_sidebar_state="expanded"
 )
 
@@ -613,7 +613,9 @@ def feedback_section(student_name, current_feedback, unique_key_suffix):
 # ==========================================
 if "df" not in st.session_state: st.session_state["df"] = load_data()
 
-st.sidebar.title("🌿 SmarTrack")
+# Naya Graduation Cap emoji laga diya yahan!
+st.sidebar.title("🎓 SmarTrack")
+
 if st.sidebar.button("🔄 Refresh Data"):
     st.session_state["df"] = load_data()
     st.rerun()
