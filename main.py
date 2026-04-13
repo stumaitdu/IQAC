@@ -11,7 +11,7 @@ import numpy as np
 # 1. PAGE CONFIGURATION
 # ==========================================
 st.set_page_config(
-    page_title="OneHealth IQAC Dashboard",
+    page_title="SmarTrack Dashboard",
     layout="wide",
     page_icon="🌿",
     initial_sidebar_state="expanded"
@@ -24,13 +24,13 @@ st.markdown("""
     <style>
         .stApp { background-color: #ffffff !important; color: #212529 !important; }
         [data-testid="stSidebar"] { background-color: #f8f9fa !important; border-right: 1px solid #dee2e6; }
-       
+        
         h1, h2, h3, h4, h5, h6, p, span, div, label { color: #212529 !important; font-family: 'Segoe UI', sans-serif; }
-       
+        
         [data-testid="stMetric"] { background-color: #ffffff; border: 1px solid #e9ecef; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         [data-testid="stMetricLabel"] { color: #6c757d !important; }
         [data-testid="stMetricValue"] { color: #212529 !important; }
-       
+        
         .js-plotly-plot .plotly .main-svg { background: rgba(0,0,0,0) !important; }
 
         /* CARDS */
@@ -40,21 +40,21 @@ st.markdown("""
             border-radius: 8px; padding: 12px 15px; margin-bottom: 5px; transition: 0.2s;
         }
         .compact-topper-row:hover { background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
-       
+        
         .ct-rank { font-size: 24px; margin-right: 15px; min-width: 40px; text-align: center; }
         .ct-name { font-size: 16px; font-weight: 700; color: #212529; }
         .ct-details { font-size: 12px; color: #555; margin-top: 4px; }
-       
+        
         .ct-stats { text-align: right; min-width: 100px; }
         .ct-score-box { background-color: #e9ecef; color: #212529; font-weight: 700; font-size: 14px; padding: 4px 8px; border-radius: 5px; display: inline-block; margin-bottom: 4px; }
         .ct-cgpa { font-size: 13px; font-weight: 600; color: #444; }
-       
+        
         .centered-header { text-align: center; font-size: 24px; font-weight: bold; margin-top: 20px; margin-bottom: 30px; color: #212529; }
-       
+        
         .streamlit-expanderHeader {
             font-weight: 600; color: #333; background-color: white; border: 1px solid #ddd; border-radius: 5px;
         }
-       
+        
         .empathetic-note {
             font-size: 12.5px; color: #6c757d; font-style: italic; background-color: #f1f3f5;
             padding: 6px 10px; border-radius: 4px; border-left: 3px solid #ffc107; margin-top: 5px; margin-bottom: 10px;
@@ -78,24 +78,24 @@ def load_data():
             url = FIXED_SHEET_LINK.replace("/edit?usp=sharing", "/export?format=csv").replace("/edit", "/export?format=csv")
             df = pd.read_csv(url)
         except: pass
-   
+    
     if df is None:
         possible_files = ["student_data.csv", "CHECK.csv"]
         for f in possible_files:
             if os.path.exists(f):
                 try: df = pd.read_csv(f); break
                 except: continue
-   
+    
     if df is not None:
         df.columns = df.columns.str.strip()
         df = df.dropna(how='all')
-       
+        
         if os.path.exists("student_data.csv"):
             try:
                 df_local = pd.read_csv("student_data.csv")
                 if 'Name' in df.columns: df['Name_Key'] = df.iloc[:, 1].astype(str).str.strip().str.lower()
                 else: df['Name_Key'] = df.index.astype(str)
-               
+                
                 if 'Name' in df_local.columns:
                     df_local['Name_Key'] = df_local['Name'].astype(str).str.strip().str.lower()
                     if 'Teacher_Feedback' in df_local.columns:
@@ -103,21 +103,21 @@ def load_data():
                         name_col = next((c for c in df.columns if 'name' in c.lower()), df.columns[1])
                         df['Teacher_Feedback'] = df[name_col].astype(str).str.strip().str.lower().map(fb_map).fillna("No feedback yet")
             except: pass
-               
+                
     return df
 
 def calculate_points_for_text(text, cat_type="std"):
     text = str(text).lower().strip()
     if text in ['nan', '0', '0.0', '', 'no', 'nil', '-', '.', 'none', 'select']: return 0.0
     points = 0.0
-   
+    
     if any(x in text for x in ['international']): points = 2.0
     elif any(x in text for x in ['national', '1st', 'first', 'winner', 'gold']): points = 2.0
     elif any(x in text for x in ['state', 'university', 'inter-college', '2nd', 'second', 'runner', 'silver']): points = 1.5
     elif any(x in text for x in ['3rd', 'third', 'bronze', 'district']): points = 1.0
     elif any(x in text for x in ['leadership', 'secretary', 'head', 'president', 'vice president', 'treasurer', 'coordinator']): points = 1.0
     elif any(x in text for x in ['participation', 'participated', 'member', 'attendee']): points = 0.5
-   
+    
     if points == 0 and len(text) > 2: points = 0.5
     return points
 
@@ -127,7 +127,7 @@ def get_activity_details_df(row, all_columns):
     name_cols = [c for c in all_columns if 'activity' in str(c).lower() and 'name' in str(c).lower()]
     date_cols = [c for c in all_columns if 'date' in str(c).lower()]
     proof_cols = [c for c in all_columns if 'proof' in str(c).lower()]
-   
+    
     for i, lvl_col in enumerate(level_cols):
         col_name = str(lvl_col).lower()
         cat_name = "Extra-Curricular"
@@ -136,16 +136,16 @@ def get_activity_details_df(row, all_columns):
         elif any(x in col_name for x in ['sp', 'sport']): cat_name = 'Sports'
         elif 'ncc' in col_name: cat_name = 'NCC'
         elif any(x in col_name for x in ['ie', 'industry', 'intern', 'job']): cat_name = 'Industry/Internship'
-       
+        
         act_col = name_cols[i] if i < len(name_cols) else None
         date_col = date_cols[i] if i < len(date_cols) else None
         proof_col = proof_cols[i] if i < len(proof_cols) else None
-       
+        
         lvl_val = str(row[lvl_col]).strip()
         act_val = str(row[act_col]).strip() if act_col else "Activity"
         date_val = str(row[date_col]).strip() if date_col else "-"
         proof_val = str(row[proof_col]).strip() if proof_col else None
-       
+        
         if lvl_val.lower() not in ['nan', '', 'none', 'no', '0', '0.0', 'select']:
              pts = calculate_points_for_text(lvl_val)
              if act_val.lower() in ['nan', '']: act_val = "Not Mentioned"
@@ -157,26 +157,26 @@ def get_activity_details_df(row, all_columns):
     if not details: return pd.DataFrame()
     return pd.DataFrame(details)
 
-# --- ONEHEALTH RECOMMENDATION ENGINE ---
-def get_onehealth_analysis(row):
+# --- SMARTRACK RECOMMENDATION ENGINE ---
+def get_smartrack_analysis(row):
     academics = row.get('CGPA_Pts', 0)
     cgpa_val = float(row.get('CGPA_Val', 0.0))
     social = min(row.get('Outreach_Pts', 0) + row.get('NCC_Pts', 0), 5.0)
     physical = row.get('Sports_Pts', 0)
     research = row.get('Research_Pts', 0)
     literacy = min(row.get('Extra_Pts', 0) + row.get('Industry_Pts', 0), 5.0)
-   
+    
     areas = {'Academics': academics, 'Social Responsibility': social, 'Physical Health': physical, 'Research': research, 'Literacy': literacy}
-   
+    
     white_areas = []
     gray_areas = []  
     black_areas = []
-   
+    
     for cat, score in areas.items():
         if score >= 3.0: white_areas.append(cat)
         elif score >= 1.0: gray_areas.append(cat)
         else: black_areas.append(cat)
-       
+        
     recommendation = ""
     # STRICT CGPA CHECK
     if 'Academics' in white_areas and cgpa_val >= 7.0 and 'Social Responsibility' in black_areas:
@@ -189,7 +189,7 @@ def get_onehealth_analysis(row):
         recommendation = "🏆 Excellent holistic balance! You are managing your time well across multiple domains, which is the best way to maintain good mental health and a strong profile."
     else:
         recommendation = f"🌱 Step out of your comfort zone! Start exploring your areas like {', '.join(gray_areas + black_areas)} to build a well-rounded personality."
-       
+        
     return areas, white_areas, gray_areas, black_areas, recommendation
 
 # --- DYNAMIC OPPORTUNITY FETCHER FOR TAB 1 (BASED ON WHITE/BLACK AREAS AND CGPA) ---
@@ -208,7 +208,7 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
                 opps.append({"name": "State-Level Tech Symposium & Hackathon", "type": "Premium Academic", "date": "15 April", "premium": True, "note": "🌟 Use your strong core concepts to build real-world projects and compete!"})
             else:
                 opps.append({"name": "Global Open Source & AI Fellowship", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Ready for the big leagues! Leverage your high CGPA for this advanced fellowship."})
-       
+        
         elif any(k in course_lower for k in ['commerce', 'b.com', 'eco']):
             if year == 1:
                 opps.append({"name": "Foundation Business & Economics Quiz", "type": "Premium Academic", "date": "TBA", "premium": True, "note": "🌟 Great academic base! Sharpen your knowledge against peers."})
@@ -216,7 +216,7 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
                 opps.append({"name": "National Finance & Strategy Case Challenge", "type": "Premium Academic", "date": "22 April", "premium": True, "note": "🌟 Compete with top minds by solving real-world corporate strategy cases."})
             else:
                 opps.append({"name": "Pre-Placement Investment Banking Workshop", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Polish your stellar profile for top-tier corporate placements."})
-       
+        
         else: # Humanities / Arts
             if year == 1:
                 opps.append({"name": "University Freshers Debate & Essay Fest", "type": "Premium Academic", "date": "Next Month", "premium": True, "note": "🌟 Express your strong academic thoughts on a bigger platform."})
@@ -224,7 +224,7 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
                 opps.append({"name": "National Model United Nations (MUN)", "type": "Premium Academic", "date": "18 April", "premium": True, "note": "🌟 Use your analytical skills in policy drafting and diplomacy."})
             else:
                 opps.append({"name": "National Level Research & Policy Conference", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Your academics are stellar! Try publishing and presenting a research paper."})
-               
+                
     elif cgpa_val < 7.0:
         # Academic Support for < 7.0 based on Year
         if year == 1:
@@ -238,7 +238,7 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
     if 'Social Responsibility' in black_areas:
         opps.append({"name": "Campus NGO Orientation & Weekend Outreach", "type": "Social Responsibility", "date": "Every Sunday", "premium": False,
                      "note": "🌱 We noticed your social involvement is a bit low right now. Don't worry, every expert was once a beginner! Try this beginner-friendly drive."})
-   
+    
     if 'Physical Health' in black_areas:
         opps.append({"name": "Beginner's 3K Campus Run & Yoga Camp", "type": "Physical Well-being", "date": "Next Saturday", "premium": False,
                      "note": "🏃‍♂️ Taking a break from studies is crucial. Join this easy, stress-free physical activity to refresh your mind!"})
@@ -271,9 +271,9 @@ def fetch_study_materials(stream_name, current_year):
     try: year_key = int(current_year)
     except: year_key = 1
     if year_key > 3: year_key = 3
-   
+    
     resources = {}
-   
+    
     # 1. UNIVERSAL DU GUIDELINES & PYQs (Added to all subjects)
     resources["DU Official Exam Guidelines & Past Year Questions (PYQs)"] = {
         "syllabus": "Official DU Portal for General Exams and Pattern",
@@ -282,7 +282,7 @@ def fetch_study_materials(stream_name, current_year):
         "pyq2": "https://www.google.com/search?q=DU+Buddy+Previous+Year+Question+Papers",
         "pyq3": "https://www.google.com/search?q=Delhi+University+Question+Papers+Drive+PDF"
     }
-   
+    
     # --- DU NEP ALIGNED SUBJECT BANKS ---
     base_subjects = {
         "cs": {
@@ -343,13 +343,13 @@ def fetch_study_materials(stream_name, current_year):
     }
 
     found_match = False
-   
+    
     # SMART EXTRACTOR: Creates dynamic links for multiple subjects (e.g. Eco + CS)
     for keyword, y_data in base_subjects.items():
         if keyword in course:
             found_match = True
             subjects = y_data.get(year_key, y_data[3])
-           
+            
             for subj in subjects:
                 # 1. Video Link Logic (Strictly GeeksforGeeks for CS)
                 if keyword in ['cs', 'computer']:
@@ -388,40 +388,40 @@ def create_pdf(row):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-   
+    
     def clean(text):
         return str(text).encode('latin-1', 'replace').decode('latin-1')
-   
+    
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, "OneHealth IQAC Student Report", ln=True, align='C')
+    pdf.cell(0, 10, "SmarTrack Student Report", ln=True, align='C')
     pdf.ln(5)
-   
+    
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, "Student Profile", ln=True)
     pdf.set_font("Arial", '', 11)
-   
+    
     pdf.cell(0, 8, f"Name: {clean(row['Name'])}", ln=True)
     pdf.cell(0, 8, f"Roll No: {clean(row.get('Roll_No', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Stream: {clean(row['Stream'])} | Year: {row['Year']}", ln=True)
     pdf.cell(0, 8, f"Email: {clean(row.get('Email_Id', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Phone: {clean(row.get('Phone_No', 'N/A'))}", ln=True)
     pdf.ln(5)
-   
+    
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, "Performance Summary", ln=True)
     pdf.set_font("Arial", '', 11)
-    pdf.cell(0, 8, f"Total IQAC Score: {row['Total IQAC Score']}", ln=True)
+    pdf.cell(0, 8, f"Total SmarTrack Score: {row['Total SmarTrack Score']}", ln=True)
     pdf.cell(0, 8, f"Status: {clean(row['Status_Text'])}", ln=True)
     pdf.cell(0, 8, f"Batch Rank: #{int(row['Rank'])}", ln=True)
     pdf.ln(5)
-   
+    
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, "Score Breakdown", ln=True)
     pdf.set_font("Arial", 'B', 10)
     pdf.set_fill_color(240, 240, 240)
     pdf.cell(140, 8, "Category", 1, 0, 'L', True)
     pdf.cell(40, 8, "Points", 1, 1, 'C', True)
-   
+    
     pdf.set_font("Arial", '', 10)
     data = [
         ("CGPA Score", f"{row['CGPA_Val']} (Pts: {row['CGPA_Pts']})"),
@@ -436,12 +436,12 @@ def create_pdf(row):
         pdf.cell(140, 8, cat, 1, 0, 'L')
         pdf.cell(40, 8, str(score), 1, 1, 'C')
     pdf.ln(10)
-   
-    # --- PDF OneHealth Section ---
+    
+    # --- PDF SmarTrack Section ---
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, "OneHealth: Holistic Well-being Recommendation", ln=True)
+    pdf.cell(0, 10, "SmarTrack: Holistic Well-being Recommendation", ln=True)
     pdf.set_font("Arial", 'I', 11)
-    _, _, _, _, ai_reco = get_onehealth_analysis(row)
+    _, _, _, _, ai_reco = get_smartrack_analysis(row)
     pdf.multi_cell(0, 8, clean(ai_reco))
     pdf.ln(10)
 
@@ -449,24 +449,24 @@ def create_pdf(row):
     pdf.cell(0, 10, "Teacher Feedback", ln=True)
     pdf.set_font("Arial", 'I', 11)
     pdf.multi_cell(0, 8, clean(row['Teacher_Feedback']))
-   
+    
     pdf.ln(10)
     pdf.set_font("Arial", '', 8)
-    pdf.cell(0, 10, "Generated by OneHealth IQAC Digital System", align='C')
-   
+    pdf.cell(0, 10, "Generated by SmarTrack Digital System", align='C')
+    
     return pdf.output(dest='S').encode('latin-1')
 
 def process_and_score_data(df):
     if df is None: return None
     res = pd.DataFrame()
-   
+    
     name_col = next((c for c in df.columns if 'name' in c.lower() and 'activity' not in c.lower()), df.columns[1])
     res['Name'] = df[name_col].astype(str).str.strip()
-   
+    
     email_col = next((c for c in df.columns if 'email' in c.lower()), None)
     phone_col = next((c for c in df.columns if 'contact' in c.lower() or 'mobile' in c.lower() or 'phone' in c.lower()), None)
     roll_col = next((c for c in df.columns if 'roll' in c.lower()), None)
-   
+    
     res['Email_Id'] = df[email_col].astype(str) if email_col else "Not Available"
     res['Phone_No'] = df[phone_col].astype(str).str.replace(r'\.0$', '', regex=True).replace('nan', 'N/A') if phone_col else "N/A"
     res['Roll_No'] = df[roll_col].astype(str).str.replace(r'\.0$', '', regex=True).replace('nan', 'N/A') if roll_col else "N/A"
@@ -479,17 +479,17 @@ def process_and_score_data(df):
         def is_valid(val):
             v = str(val).lower().strip()
             return v not in ['nan', '', 'none', 'select', 'choose', 'select course', 'other'] and len(v) > 2
-       
+        
         # SMART CATEGORY FIX
         for col in [col_hum, col_sci, col_comm]:
             if col and is_valid(row[col]):
                 val = str(row[col]).strip()
                 v_lower = val.lower()
-               
+                
                 # 1. Exact overrides for confusing subjects
                 if 'political science' in v_lower or 'home science' in v_lower:
                     return val, "Humanities"
-               
+                
                 # 2. Check Degree Prefixes First
                 if any(k in v_lower for k in ['b.a', 'ba ', 'ba(', 'humanities', 'arts']):
                     return val, "Humanities"
@@ -497,7 +497,7 @@ def process_and_score_data(df):
                     return val, "Commerce"
                 if any(k in v_lower for k in ['b.sc', 'bsc', 'science']):
                     return val, "Science"
-                   
+                    
                 # 3. Subject-based fallbacks
                 if 'eco' in v_lower or 'history' in v_lower or 'english' in v_lower: return val, "Humanities"
                 if 'computer' in v_lower or 'math' in v_lower or 'physics' in v_lower: return val, "Science"
@@ -525,7 +525,7 @@ def process_and_score_data(df):
         res['CGPA_Raw'] = df[cgpa_col].apply(lambda x: float(x) if str(x).replace('.','',1).isdigit() else 0.0)
 
     res['Teacher_Feedback'] = df['Teacher_Feedback'] if 'Teacher_Feedback' in df.columns else "No feedback yet"
-   
+    
     def get_cgpa_pts(row):
         try:
             val = float(row['CGPA_Raw']); cat = str(row['Category_Main']).lower()
@@ -554,18 +554,18 @@ def process_and_score_data(df):
             cat_key = detect_category_smart(col)
             if cat_key: current_scores[cat_key] += calculate_points_for_text(row[col])
         for k in current_scores: final_scores[k].append(min(current_scores[k], 5.0))
-           
+            
     for k, v in final_scores.items(): res[f'{k}_Pts'] = v
 
-    res['Total IQAC Score'] = res['CGPA_Pts'] + res['Sports_Pts'] + res['Research_Pts'] + res['NCC_Pts'] + res['Outreach_Pts'] + res['Extra_Pts'] + res['Industry_Pts']
-    res['Rank'] = res.groupby(['Stream', 'Year'])['Total IQAC Score'].rank(ascending=False, method='min')
-   
+    res['Total SmarTrack Score'] = res['CGPA_Pts'] + res['Sports_Pts'] + res['Research_Pts'] + res['NCC_Pts'] + res['Outreach_Pts'] + res['Extra_Pts'] + res['Industry_Pts']
+    res['Rank'] = res.groupby(['Stream', 'Year'])['Total SmarTrack Score'].rank(ascending=False, method='min')
+    
     res['Is_All_Rounder'] = False
     def mark_all_rounders(group):
         if not group.empty:
-            top_idx = group.sort_values(by=['Total IQAC Score', 'CGPA_Val'], ascending=[False, False]).index[0]
+            top_idx = group.sort_values(by=['Total SmarTrack Score', 'CGPA_Val'], ascending=[False, False]).index[0]
             top_student = res.loc[top_idx]
-            if top_student['CGPA_Val'] >= 6.0 and (top_student['Total IQAC Score'] - top_student['CGPA_Pts']) > 0:
+            if top_student['CGPA_Val'] >= 6.0 and (top_student['Total SmarTrack Score'] - top_student['CGPA_Pts']) > 0:
                 res.loc[top_idx, 'Is_All_Rounder'] = True
         return group
     if not res.empty: res.groupby(['Stream', 'Year'], group_keys=False).apply(mark_all_rounders)
@@ -586,13 +586,13 @@ def process_and_score_data(df):
         return name
     res['Display_Name'] = res.apply(generate_display_name, axis=1)
     res['Original_Index'] = df.index
-   
+    
     return res
 
 def feedback_section(student_name, current_feedback, unique_key_suffix):
     clean_name = student_name.replace('🏅 ', '').replace(' 🔴', '').strip()
     with st.form(key=f"fb_{clean_name}_{unique_key_suffix}"):
-        st.write(f"📝 *Feedback for {clean_name}*")
+        st.write(f"📝 Feedback for {clean_name}")
         feedback_text = st.text_area("Enter Feedback:", value=current_feedback, height=100)
         c1, c2 = st.columns([0.4, 0.6])
         if c1.form_submit_button("💾 Save / Update"):
@@ -613,7 +613,7 @@ def feedback_section(student_name, current_feedback, unique_key_suffix):
 # ==========================================
 if "df" not in st.session_state: st.session_state["df"] = load_data()
 
-st.sidebar.title("🌿 OneHealth IQAC")
+st.sidebar.title("🌿 SmarTrack")
 if st.sidebar.button("🔄 Refresh Data"):
     st.session_state["df"] = load_data()
     st.rerun()
@@ -623,17 +623,17 @@ df_raw = st.session_state["df"]
 if df_raw is not None:
     df = process_and_score_data(df_raw)
     if df is not None: df = df[df['Category_Main'] != 'General']
-   
+    
     if df is not None and not df.empty:
         tab1, tab2, tab3, tab4, tab5 = st.tabs(["🎓 Student Dashboard", "📉 Remedial Tracker", "🏆 Hall of Fame", "🌟 Top Performers", "📚 Study Material"])
-       
+        
         # --- TAB 1: DASHBOARD ---
         with tab1:
             st.sidebar.markdown("---")
             st.sidebar.subheader("Filter Stream")
             sel_stream = None; sel_year = None
             main_cats = [x for x in sorted(df['Category_Main'].unique()) if str(x).lower() != 'nan']
-           
+            
             def on_stream_change(current_cat):
                 for cat in main_cats:
                     if cat != current_cat and f"radio_{cat}" in st.session_state: st.session_state[f"radio_{cat}"] = None
@@ -649,12 +649,12 @@ if df_raw is not None:
                             available_years = sorted(df[df['Stream'] == selection]['Year'].unique())
                             if len(available_years) > 0:
                                 sel_year = st.radio(f"Select Year ({selection}):", available_years, horizontal=True, key=f"year_{selection}")
-           
+            
             filtered_df = df.copy()
             if sel_stream:
                 filtered_df = filtered_df[filtered_df['Stream'] == sel_stream]
                 if sel_year: filtered_df = filtered_df[filtered_df['Year'] == sel_year]
-           
+            
             if sel_stream and sel_year:
                 if not filtered_df.empty:
                     student_options = sorted(filtered_df['Display_Name'].unique())
@@ -675,7 +675,7 @@ if df_raw is not None:
 
                         badge_html = '<span style="background-color:#FFD700; color:black; padding:4px 12px; border-radius:15px; font-size:12px; font-weight:bold; margin-left:10px; vertical-align: middle; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🏆 Year Topper</span>' if row['Is_All_Rounder'] else ""
                         status_html = f'<span style="background-color:#f8f9fa; color:#333; padding:4px 12px; border-radius:15px; font-size:12px; font-weight:600; border: 1px solid #dee2e6; margin-left: 5px; vertical-align: middle;">{row["Status_Icon"]} {row["Status_Text"]}</span>'
-                       
+                        
                         email_display = row.get('Email_Id', 'N/A'); phone_display = row.get('Phone_No', 'N/A')
 
                         with head_col1:
@@ -686,19 +686,19 @@ if df_raw is not None:
                                 <div style="font-size: 13px; color: #888; margin-top: 2px;">📧 {email_display} &nbsp;|&nbsp; 📞 {phone_display}</div>
                             </div>""", unsafe_allow_html=True)
                         st.markdown("---")
-                       
+                        
                         c1, c2, c3, c4, c5 = st.columns(5)
-                        c1.metric("🏆 Total Score", f"{row['Total IQAC Score']}")
+                        c1.metric("🏆 Total Score", f"{row['Total SmarTrack Score']}")
                         c2.metric("🎓 Avg. CGPA", f"{row['CGPA_Val']:.2f}")
                         c3.metric("📊 CGPA Points", f"{row['CGPA_Pts']}")
-                        c4.metric("🚀 Activity Pts", f"{row['Total IQAC Score'] - row['CGPA_Pts']}")
+                        c4.metric("🚀 Activity Pts", f"{row['Total SmarTrack Score'] - row['CGPA_Pts']}")
                         c5.metric("📈 Batch Rank", f"#{int(row['Rank'])}")
                         st.markdown("---")
 
                         chart_data_map = {'Avg CGPA': row['CGPA_Pts'], 'Extra-Curricular': row['Extra_Pts'], 'Research': row['Research_Pts'], 'Outreach': row['Outreach_Pts'], 'Sports': row['Sports_Pts'], 'NCC': row['NCC_Pts'], 'Industry': row['Industry_Pts']}
                         cats = list(chart_data_map.keys()); vals = list(chart_data_map.values())
                         vals_viz = [min(v, 5.0) for v in vals]
-                       
+                        
                         cl, cr = st.columns(2)
                         with cl:
                             st.subheader("🕸️ Holistic Performance")
@@ -712,51 +712,51 @@ if df_raw is not None:
                             fig2.update_layout(coloraxis_showscale=False, height=400, margin=dict(l=0, r=10, t=20, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
                             st.plotly_chart(fig2, use_container_width=True)
                         st.markdown("---")
-                       
+                        
                         # --- 1. DETAILED ACTIVITY LOG ---
                         st.markdown("### 📌 Detailed Activity Log")
                         details_df = get_activity_details_df(raw_row, df_raw.columns)
                         if not details_df.empty: st.dataframe(details_df, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
                         else: st.info("ℹ️ No detailed activity records found for this student.")
-                       
+                        
                         st.markdown("---")
-                       
-                        # --- 2. ONEHEALTH SECTION & PERSONALIZED OPPORTUNITIES ---
+                        
+                        # --- 2. SMARTRACK SECTION & PERSONALIZED OPPORTUNITIES ---
                         st.markdown(f"### 🧠 Personal Development Analysis for {row['Name']}")
-                        areas, white_areas, gray_areas, black_areas, recommendation = get_onehealth_analysis(row)
-                       
+                        areas, white_areas, gray_areas, black_areas, recommendation = get_smartrack_analysis(row)
+                        
                         chart_col, text_col = st.columns([0.4, 0.6])
-                       
+                        
                         with chart_col:
                             oh_df = pd.DataFrame(list(areas.items()), columns=['Category', 'Points'])
                             color_scale = [(0.0, "#ff4b4b"), (0.2, "#ff4b4b"), (0.2, "#ffa157"), (0.6, "#ffa157"), (0.6, "#00cc96"), (1.0, "#00cc96")]
-                           
+                            
                             fig_oh = px.bar_polar(oh_df, r="Points", theta="Category", color="Points", color_continuous_scale=color_scale, template="plotly_white", title="Well-being Profile")
                             fig_oh.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5], gridcolor="#e9ecef", tickfont=dict(color="#444")), angularaxis=dict(gridcolor="#e9ecef", tickfont=dict(color="#444"))), showlegend=False, height=400, margin=dict(l=50, r=50, t=60, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", title_font=dict(size=18), coloraxis_showscale=False)
                             st.plotly_chart(fig_oh, use_container_width=True)
-                       
+                        
                         with text_col:
                             st.write(""); st.write("")
-                            st.success(f"**⚪ Strengths (White Areas):** " + (", ".join(white_areas) if white_areas else "None yet"))
-                            st.warning(f"**🔘 Average (Gray Areas):** " + (", ".join(gray_areas) if gray_areas else "None"))
-                            st.error(f"**⚫ Needs Focus (Black Areas):** " + (", ".join(black_areas) if black_areas else "None! Amazing!"))
-                            st.markdown("#### 💡 OneHealth Recommendation")
+                            st.success(f"*⚪ Strengths (White Areas):* " + (", ".join(white_areas) if white_areas else "None yet"))
+                            st.warning(f"*🔘 Average (Gray Areas):* " + (", ".join(gray_areas) if gray_areas else "None"))
+                            st.error(f"*⚫ Needs Focus (Black Areas):* " + (", ".join(black_areas) if black_areas else "None! Amazing!"))
+                            st.markdown("#### 💡 SmarTrack Recommendation")
                             st.info(recommendation)
-                       
+                        
                         st.markdown("---")
-                       
+                        
                         # DYNAMIC PERSONALIZED OPPORTUNITIES
                         st.markdown("#### 🎯 Curated Opportunities For You")
                         st.write("Based on your performance profile and academic year, we recommend getting involved in these areas:")
-                       
+                        
                         personalized_opps = fetch_personalized_opportunities(white_areas, black_areas, row['Stream'], row['CGPA_Val'], row['Year'])
                         for opp in personalized_opps:
-                            st.markdown(f"- 🏆 **{opp['name']}** ({opp['date']}) - [{opp['type']}]")
+                            st.markdown(f"- 🏆 *{opp['name']}* ({opp['date']}) - [{opp['type']}]")
                             if opp['premium']:
                                 st.markdown(f"<div class='premium-note'>{opp['note']}</div>", unsafe_allow_html=True)
                             else:
                                 st.markdown(f"<div class='empathetic-note'>{opp['note']}</div>", unsafe_allow_html=True)
-                       
+                        
                         st.markdown("---")
 
                         # --- 3. UPDATE FEEDBACK SECTION ---
@@ -784,7 +784,7 @@ if df_raw is not None:
             if sel_rem_cat and sel_rem_course and sel_rem_year:
                 weak_students = df[(df['Category_Main'] == sel_rem_cat) & (df['Stream'] == sel_rem_course) & (df['Year'] == sel_rem_year) & (df['Status_Text'] == "Needs Improvement")].copy()
                 if not weak_students.empty:
-                    st.dataframe(weak_students[['Name', 'Stream', 'Year', 'CGPA_Val', 'Total IQAC Score', 'Teacher_Feedback']], use_container_width=True)
+                    st.dataframe(weak_students[['Name', 'Stream', 'Year', 'CGPA_Val', 'Total SmarTrack Score', 'Teacher_Feedback']], use_container_width=True)
                     st.markdown("---"); st.markdown("### ✍️ Update Remedial Student Feedback")
                     col_sel, col_form = st.columns([0.4, 0.6])
                     with col_sel: rem_student = st.selectbox("Select Student to Update:", weak_students['Name'].unique(), key="rem_select_fb")
@@ -804,7 +804,7 @@ if df_raw is not None:
                         topper = df[(df['Category_Main'].apply(lambda x: any(k.lower() in str(x).lower() for k in keywords))) & (df['Year'] == year) & (df['Is_All_Rounder'] == True)]
                         if not topper.empty:
                             row = topper.iloc[0]
-                            st.markdown(f"""<div style="background-color: #fff; border: 1px solid #e0e0e0; border-left: 4px solid #00CC96; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><div style="font-size: 11px; font-weight: bold; color: #888; width: 45px;">YEAR {year}</div><div style="font-weight: 700; font-size: 13px; color: #333; flex-grow: 1; padding: 0 8px;">🏅 {row['Name']}</div><div style="font-weight: 700; font-size: 13px; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; border:1px solid #ddd; color: #333;">{row['Total IQAC Score']}</div></div>""", unsafe_allow_html=True)
+                            st.markdown(f"""<div style="background-color: #fff; border: 1px solid #e0e0e0; border-left: 4px solid #00CC96; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><div style="font-size: 11px; font-weight: bold; color: #888; width: 45px;">YEAR {year}</div><div style="font-weight: 700; font-size: 13px; color: #333; flex-grow: 1; padding: 0 8px;">🏅 {row['Name']}</div><div style="font-weight: 700; font-size: 13px; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; border:1px solid #ddd; color: #333;">{row['Total SmarTrack Score']}</div></div>""", unsafe_allow_html=True)
                             with st.expander(f"📂 View Activity Details for {row['Name']}"):
                                 details_df_hof = get_activity_details_df(df_raw.iloc[row['Original_Index']], df_raw.columns)
                                 if not details_df_hof.empty: st.dataframe(details_df_hof, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
@@ -818,8 +818,8 @@ if df_raw is not None:
             all_toppers = df[df['Is_All_Rounder'] == True].sort_values(by=['Category_Main', 'Year']).copy()
             marksheet_col = next((c for c in df_raw.columns if 'upload' in c.lower() and 'marksheet' in c.lower()), None)
             all_toppers['Marksheet_View'] = df_raw.loc[all_toppers['Original_Index'], marksheet_col].values if marksheet_col else None
-            st.dataframe(all_toppers[['Name', 'Category_Main', 'Stream', 'Year', 'Total IQAC Score', 'CGPA_Pts', 'Marksheet_View', 'Teacher_Feedback']], use_container_width=True, hide_index=True, column_config={"Marksheet_View": st.column_config.LinkColumn("Marksheet", display_text="📄 View PDF"), "CGPA_Pts": st.column_config.NumberColumn("CGPA Points", format="%.1f"), "Total IQAC Score": st.column_config.NumberColumn("Score", format="%.1f")})
-           
+            st.dataframe(all_toppers[['Name', 'Category_Main', 'Stream', 'Year', 'Total SmarTrack Score', 'CGPA_Pts', 'Marksheet_View', 'Teacher_Feedback']], use_container_width=True, hide_index=True, column_config={"Marksheet_View": st.column_config.LinkColumn("Marksheet", display_text="📄 View PDF"), "CGPA_Pts": st.column_config.NumberColumn("CGPA Points", format="%.1f"), "Total SmarTrack Score": st.column_config.NumberColumn("Score", format="%.1f")})
+            
             st.markdown("### ✍️ Update Topper Feedback")
             t_col_sel, t_col_form = st.columns([0.4, 0.6])
             with t_col_sel: topper_student = st.selectbox("Select Topper to Update:", all_toppers['Name'].unique(), key="topper_select_fb")
@@ -837,12 +837,12 @@ if df_raw is not None:
                     selected_year = c3.selectbox("3️⃣ Select Year:", sorted(df[(df['Category_Main'] == selected_cat) & (df['Stream'] == selected_course)]['Year'].unique()))
                     if selected_year:
                         subset = df[(df['Stream'] == selected_course) & (df['Year'] == selected_year)]
-                        subset = subset[(subset['Total IQAC Score'] - subset['CGPA_Pts']) > 0].sort_values(by='Total IQAC Score', ascending=False).head(3)
+                        subset = subset[(subset['Total SmarTrack Score'] - subset['CGPA_Pts']) > 0].sort_values(by='Total SmarTrack Score', ascending=False).head(3)
                         st.markdown("---")
                         if not subset.empty:
                             for i, (idx, row) in enumerate(subset.iterrows()):
                                 rank_icon = ["🥇", "🥈", "🥉"][i] if i < 3 else f"#{i+1}"
-                                st.markdown(f"""<div class="compact-topper-row"><div style="display:flex; align-items:center; width: 100%;"><div class="ct-rank">{rank_icon}</div><div style="flex-grow: 1;"><div class="ct-name">{row['Name']}</div><div class="ct-details">🆔 <b>{row.get('Roll_No', 'N/A')}</b> &nbsp;|&nbsp; 📞 {row.get('Phone_No', 'N/A')} &nbsp;|&nbsp; 📧 {row.get('Email_Id', 'N/A')}</div></div><div class="ct-stats"><div class="ct-score-box">🏆 {row['Total IQAC Score']} Pts</div><div class="ct-cgpa">🎓 CGPA: {row['CGPA_Val']:.2f}</div></div></div></div>""", unsafe_allow_html=True)
+                                st.markdown(f"""<div class="compact-topper-row"><div style="display:flex; align-items:center; width: 100%;"><div class="ct-rank">{rank_icon}</div><div style="flex-grow: 1;"><div class="ct-name">{row['Name']}</div><div class="ct-details">🆔 <b>{row.get('Roll_No', 'N/A')}</b> &nbsp;|&nbsp; 📞 {row.get('Phone_No', 'N/A')} &nbsp;|&nbsp; 📧 {row.get('Email_Id', 'N/A')}</div></div><div class="ct-stats"><div class="ct-score-box">🏆 {row['Total SmarTrack Score']} Pts</div><div class="ct-cgpa">🎓 CGPA: {row['CGPA_Val']:.2f}</div></div></div></div>""", unsafe_allow_html=True)
                                 with st.expander(f"📂 View Activity Details for {row['Name']}"):
                                     details_df_tp = get_activity_details_df(df_raw.iloc[row['Original_Index']], df_raw.columns)
                                     if not details_df_tp.empty: st.dataframe(details_df_tp, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
@@ -851,26 +851,26 @@ if df_raw is not None:
                                     if marksheet_col and str(df_raw.loc[row['Original_Index'], marksheet_col]).strip().lower() not in ['nan', '', 'none', 'no']:
                                         st.markdown(f"""<div style="margin-top: 5px; margin-bottom: 10px;"><a href="{str(df_raw.loc[row['Original_Index'], marksheet_col]).strip()}" target="_blank" style="text-decoration: none;"><button style="background-color: #f0f2f6; border: 1px solid #dce4ef; padding: 8px 16px; border-radius: 4px; color: #0068c9; font-weight: 600; cursor: pointer;">📄 View Marksheet</button></a></div>""", unsafe_allow_html=True)
                         else: st.info("ℹ️ No students in this class qualify as Top Performers yet (Must have Activity Points > 0).")
-       
+        
         # --- TAB 5: STUDY MATERIAL ---
         with tab5:
             st.markdown("<h2 class='centered-header'>📚 Study Material & NEP Syllabus Resources</h2>", unsafe_allow_html=True)
             st.write("Access authentic curated materials, subject-specific reference books, and Past Year Questions (PYQs) aligned with DU NEP framework.")
-           
+            
             sm_c1, sm_c2, sm_c3 = st.columns(3)
             sm_cat = sm_c1.selectbox("1️⃣ Select Stream Category:", [x for x in sorted(df['Category_Main'].unique()) if str(x).lower() != 'nan'], key="sm_cat")
-           
+            
             if sm_cat:
                 sm_course = sm_c2.selectbox("2️⃣ Select Course:", sorted([x for x in df[df['Category_Main'] == sm_cat]['Stream'].unique() if str(x).lower() not in ['nan', 'unknown', 'none']]), key="sm_course")
                 if sm_course:
                     sm_year = sm_c3.selectbox("3️⃣ Select Year:", [1, 2, 3, 4], key="sm_year")
-                   
+                    
                     if sm_year:
                         st.markdown("---")
                         st.subheader(f"📖 Curated Subject Resources for {sm_course} (Year {sm_year})")
-                       
+                        
                         resources = fetch_study_materials(sm_course, sm_year)
-                       
+                        
                         if resources:
                             for subject, data in resources.items():
                                 st.markdown(f"""
