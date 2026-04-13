@@ -279,7 +279,6 @@ def fetch_study_materials(stream_name, current_year):
         "syllabus": "Official DU Portal for General Exams and Pattern",
         "video": "https://www.youtube.com/results?search_query=Delhi+University+NEP+Exam+Pattern",
         "pyq1": "http://exam.du.ac.in/?Past-Question-Papers",
-        "pyq2": "https://www.google.com/search?q=DU+Buddy+Previous+Year+Question+Papers",
         "pyq3": "https://www.google.com/search?q=Delhi+University+Question+Papers+Drive+PDF"
     }
     
@@ -290,7 +289,7 @@ def fetch_study_materials(stream_name, current_year):
             2: ["Data Structures", "Operating Systems", "Design and Analysis of Algorithms"],
             3: ["Internet Technologies", "Theory of Computation", "Artificial Intelligence"]
         },
-        "computer": { # Alias for CS
+        "computer": { 
             1: ["Programming Fundamentals using C++", "Computer System Architecture"],
             2: ["Data Structures", "Operating Systems", "Design and Analysis of Algorithms"],
             3: ["Internet Technologies", "Theory of Computation", "Artificial Intelligence"]
@@ -305,7 +304,7 @@ def fetch_study_materials(stream_name, current_year):
             2: ["Corporate Accounting", "Company Law", "Income Tax Law and Practice"],
             3: ["Auditing and Corporate Governance", "Fundamentals of Financial Management", "GST and Customs Law"]
         },
-        "b.com": { # Alias for Commerce
+        "b.com": { 
             1: ["Financial Accounting", "Business Laws", "Business Organization and Management"],
             2: ["Corporate Accounting", "Company Law", "Income Tax Law and Practice"],
             3: ["Auditing and Corporate Governance", "Fundamentals of Financial Management", "GST and Customs Law"]
@@ -339,19 +338,30 @@ def fetch_study_materials(stream_name, current_year):
             1: ["Calculus", "Algebra"],
             2: ["Real Analysis", "Differential Equations", "Theory of Real Functions"],
             3: ["Metric Spaces and Complex Analysis", "Ring Theory and Linear Algebra"]
+        },
+        # Yahan par naya Chemistry aur Physical Science ka data add kiya hai
+        "chemistry": {
+            1: ["Atomic Structure and Chemical Bonding", "States of Matter and Ionic Equilibrium", "Fundamentals of Organic Chemistry"],
+            2: ["Chemical Thermodynamics", "Solutions and Phase Equilibrium", "Chemistry of s- and p-Block Elements"],
+            3: ["Transition Elements and Coordination Chemistry", "Quantum Chemistry and Spectroscopy", "Electrochemistry"]
+        },
+        "physical science": {
+            1: ["Mechanics", "Atomic Structure and Chemical Bonding", "Calculus and Matrices"],
+            2: ["Thermal Physics", "Chemical Thermodynamics", "Differential Equations"],
+            3: ["Solid State Physics", "Quantum Chemistry", "Basic Instrumentation Skills"]
         }
     }
 
     found_match = False
     
-    # SMART EXTRACTOR: Creates dynamic links for multiple subjects (e.g. Eco + CS)
+    # SMART EXTRACTOR: Creates dynamic links for multiple subjects (e.g. Physical Science + Chemistry)
     for keyword, y_data in base_subjects.items():
         if keyword in course:
             found_match = True
             subjects = y_data.get(year_key, y_data[3])
             
             for subj in subjects:
-                # 1. Video Link Logic (Strictly GeeksforGeeks for CS)
+                # 1. Video Link Logic
                 if keyword in ['cs', 'computer']:
                     video_link = f"https://www.youtube.com/results?search_query=GeeksforGeeks+{subj.replace(' ', '+')}"
                     ref_book = "Standard Computer Science Text (e.g., Cormen/Galvin/Balagurusamy) as per NEP"
@@ -359,16 +369,15 @@ def fetch_study_materials(stream_name, current_year):
                     video_link = f"https://www.youtube.com/results?search_query={subj.replace(' ', '+')}+University+Lectures"
                     ref_book = f"Standard DU Recommended Reading for {subj} as per NEP"
 
-                # 2. Smart 3 PYQ Links (Universal Fallback Searches to prevent broken links)
+                # 2. Smart 3 PYQ Links
                 pyq1 = f"https://www.google.com/search?q=Delhi+University+{subj.replace(' ', '+')}+PYQ+PDF"
-                pyq2 = f"https://www.google.com/search?q=site:drive.google.com+%22DU%22+%22{subj.replace(' ', '+')}%22+Question+Paper"
                 pyq3 = f"https://www.google.com/search?q=DU+Buddy+{subj.replace(' ', '+')}+Previous+Year+Question+Papers"
 
+                # Subjects directly overwrite / update the dict (prevents duplicates if physics/math overlap)
                 resources[subj] = {
                     "syllabus": f"NEP Syllabus Guidelines & Reference Books: {ref_book}",
                     "video": video_link,
                     "pyq1": pyq1,
-                    "pyq2": pyq2,
                     "pyq3": pyq3
                 }
 
@@ -378,7 +387,6 @@ def fetch_study_materials(stream_name, current_year):
             "syllabus": "NEP Syllabus Guidelines & Reference Books: DU Undergraduate Curriculum Framework (UGCF) Standard Readings",
             "video": "https://www.youtube.com/results?search_query=Delhi+University+NEP+VAC+AEC+Lectures",
             "pyq1": "https://www.google.com/search?q=Delhi+University+NEP+AEC+VAC+PYQ+PDF",
-            "pyq2": "https://www.google.com/search?q=site:drive.google.com+%22DU%22+%22Value+Addition+Course%22+Question+Paper",
             "pyq3": "https://www.google.com/search?q=DU+Buddy+NEP+Previous+Year+Question+Papers"
         }
 
@@ -613,7 +621,6 @@ def feedback_section(student_name, current_feedback, unique_key_suffix):
 # ==========================================
 if "df" not in st.session_state: st.session_state["df"] = load_data()
 
-# Naya Graduation Cap emoji laga diya yahan!
 st.sidebar.title("🎓 SmarTrack")
 
 if st.sidebar.button("🔄 Refresh Data"):
@@ -888,7 +895,6 @@ if df_raw is not None:
                                         <b style="color: #444;">📝 Past Year Question Papers (PYQs):</b><br>
                                         <div style="margin-top: 5px;">
                                             <a href="{data['pyq1']}" target="_blank" style="text-decoration: none; color: #0d6efd; margin-right: 15px;">🔍 DU Archive Search</a>
-                                            <a href="{data['pyq2']}" target="_blank" style="text-decoration: none; color: #0d6efd; margin-right: 15px;">📂 Drive Database</a>
                                             <a href="{data['pyq3']}" target="_blank" style="text-decoration: none; color: #0d6efd;">🎓 Student Portals</a>
                                         </div>
                                     </div>
