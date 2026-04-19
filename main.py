@@ -157,7 +157,6 @@ def get_activity_details_df(row, all_columns):
     if not details: return pd.DataFrame()
     return pd.DataFrame(details)
 
-# --- SMARTRACK RECOMMENDATION ENGINE ---
 def get_smartrack_analysis(row):
     academics = row.get('CGPA_Pts', 0)
     cgpa_val = float(row.get('CGPA_Val', 0.0))
@@ -178,7 +177,6 @@ def get_smartrack_analysis(row):
         else: black_areas.append(cat)
         
     recommendation = ""
-    # STRICT CGPA CHECK
     if 'Academics' in white_areas and cgpa_val >= 7.0 and 'Social Responsibility' in black_areas:
         recommendation = "🌟 You are doing exceptionally well in Academics! However, focusing entirely on studies can lead to burnout. We highly encourage you to participate in 'Social Responsibility' (like joining an NGO). This promotes holistic development and acts as a great stress-buster."
     elif 'Physical Health' in black_areas:
@@ -192,14 +190,12 @@ def get_smartrack_analysis(row):
         
     return areas, white_areas, gray_areas, black_areas, recommendation
 
-# --- DYNAMIC OPPORTUNITY FETCHER FOR TAB 1 (BASED ON WHITE/BLACK AREAS AND CGPA) ---
 def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val, current_year):
     opps = []
     course_lower = str(course).lower()
     try: year = int(current_year)
     except: year = 1
 
-    # 1. PREMIUM EVENTS ONLY FOR ACADEMICALLY SOUND KIDS (CGPA >= 7.0)
     if 'Academics' in white_areas and cgpa_val >= 7.0:
         if any(k in course_lower for k in ['cs', 'computer', 'science']):
             if year == 1:
@@ -217,7 +213,7 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
             else:
                 opps.append({"name": "Pre-Placement Investment Banking Workshop", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Polish your stellar profile for top-tier corporate placements."})
         
-        else: # Humanities / Arts
+        else: 
             if year == 1:
                 opps.append({"name": "University Freshers Debate & Essay Fest", "type": "Premium Academic", "date": "Next Month", "premium": True, "note": "🌟 Express your strong academic thoughts on a bigger platform."})
             elif year == 2:
@@ -226,7 +222,6 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
                 opps.append({"name": "National Level Research & Policy Conference", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Your academics are stellar! Try publishing and presenting a research paper."})
                 
     elif cgpa_val < 7.0:
-        # Academic Support for < 7.0 based on Year
         if year == 1:
             opps.append({"name": "First-Year Transition & Exam Strategy Workshop", "type": "Academic Support", "date": "Upcoming Week", "premium": False, "note": "📚 Build a strong base early on! Use the 'Study Material' tab to boost your grades safely."})
         elif year == 2:
@@ -234,7 +229,6 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
         else:
             opps.append({"name": "Final Year Intensive Grade Improvement Bootcamp", "type": "Academic Support", "date": "Next Weekend", "premium": False, "note": "📚 It's not too late to push your CGPA up before graduation. Focus on High-Yield topics!"})
 
-    # 2. EMPATHETIC RECOMMENDATIONS FOR BLACK AREAS
     if 'Social Responsibility' in black_areas:
         opps.append({"name": "Campus NGO Orientation & Weekend Outreach", "type": "Social Responsibility", "date": "Every Sunday", "premium": False,
                      "note": "🌱 We noticed your social involvement is a bit low right now. Don't worry, every expert was once a beginner! Try this beginner-friendly drive."})
@@ -251,7 +245,7 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
             opps.append({"name": "Final Year Thesis & Project Formatting Seminar", "type": "Research Skills", "date": "TBA", "premium": False,
                          "note": "🔬 Essential for final year students. Learn how to document your projects properly."})
                      
-    if 'Literacy' in black_areas: # Industry Skills / Extracurricular
+    if 'Literacy' in black_areas: 
         if any(k in course_lower for k in ['cs', 'computer', 'science']):
             opps.append({"name": "Beginner GitHub & Tech Resume Workshop", "type": "Skill Development", "date": "Friday Evening", "premium": False, "note": "💡 Start building your tech portfolio! Essential for practical industry knowledge."})
         elif any(k in course_lower for k in ['commerce', 'eco', 'finance']):
@@ -259,13 +253,11 @@ def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val,
         else:
             opps.append({"name": "Content Writing & Digital Communication Basics", "type": "Skill Development", "date": "Friday Evening", "premium": False, "note": "💡 Boost your communication skills for better internship opportunities."})
 
-    # Fallback if student is a complete all-rounder
     if not opps:
         opps.append({"name": "Inter-College Innovation & Leadership Challenge", "type": "Holistic Excellence", "date": "TBA", "premium": True, "note": "🏆 You are an all-rounder! Check out this premier leadership challenge to test all your skills."})
 
     return opps
 
-# --- DYNAMIC STUDY MATERIAL FETCHER (DU NEP ALIGNED, GFG FOR CS, 3 PYQS) ---
 def fetch_study_materials(stream_name, current_year):
     course = str(stream_name).lower()
     try: year_key = int(current_year)
@@ -273,8 +265,6 @@ def fetch_study_materials(stream_name, current_year):
     if year_key > 3: year_key = 3
     
     resources = {}
-    
-    # 1. UNIVERSAL DU GUIDELINES & PYQs (Added to all subjects)
     resources["DU Official Exam Guidelines & Past Year Questions (PYQs)"] = {
         "syllabus": "Official DU Portal for General Exams and Pattern",
         "video": "https://www.youtube.com/results?search_query=Delhi+University+NEP+Exam+Pattern",
@@ -282,7 +272,6 @@ def fetch_study_materials(stream_name, current_year):
         "pyq3": "https://www.google.com/search?q=Delhi+University+Question+Papers+Drive+PDF"
     }
     
-    # --- DU NEP ALIGNED SUBJECT BANKS ---
     base_subjects = {
         "cs": {
             1: ["Programming Fundamentals using C++", "Computer System Architecture"],
@@ -352,15 +341,12 @@ def fetch_study_materials(stream_name, current_year):
     }
 
     found_match = False
-    
-    # SMART EXTRACTOR: Creates dynamic links for multiple subjects
     for keyword, y_data in base_subjects.items():
         if keyword in course:
             found_match = True
             subjects = y_data.get(year_key, y_data[3])
             
             for subj in subjects:
-                # 1. Video Link Logic
                 if keyword in ['cs', 'computer']:
                     video_link = f"https://www.youtube.com/results?search_query=GeeksforGeeks+{subj.replace(' ', '+')}"
                     ref_book = "Standard Computer Science Text (e.g., Cormen/Galvin/Balagurusamy) as per NEP"
@@ -368,7 +354,6 @@ def fetch_study_materials(stream_name, current_year):
                     video_link = f"https://www.youtube.com/results?search_query={subj.replace(' ', '+')}+University+Lectures"
                     ref_book = f"Standard DU Recommended Reading for {subj} as per NEP"
 
-                # 2. Smart 3 PYQ Links
                 pyq1 = f"https://www.google.com/search?q=Delhi+University+{subj.replace(' ', '+')}+PYQ+PDF"
                 pyq3 = f"https://www.google.com/search?q=DU+Buddy+{subj.replace(' ', '+')}+Previous+Year+Question+Papers"
 
@@ -379,7 +364,6 @@ def fetch_study_materials(stream_name, current_year):
                     "pyq3": pyq3
                 }
 
-    # Fallback if no specific subject matched
     if not found_match:
         resources["General Foundation & AEC/VAC Subjects"] = {
             "syllabus": "NEP Syllabus Guidelines & Reference Books: DU Undergraduate Curriculum Framework (UGCF) Standard Readings",
@@ -395,12 +379,11 @@ def create_pdf(row):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # MODIFICATION 2: Using 'ignore' drops emojis so they don't turn into ????
+    # Emojis ab ignore ho jayenge, ???? nahi aayega
     def clean(text):
         return str(text).encode('latin-1', 'ignore').decode('latin-1').strip()
     
-    # MODIFICATION 3: Change "Arial" to "Times" and Standardize Font Size to 12
-    pdf.set_font("Times", 'B', 14) # Title slightly larger for aesthetic
+    pdf.set_font("Times", 'B', 14) 
     pdf.cell(0, 10, "SmarTrack Student Report", ln=True, align='C')
     pdf.ln(5)
     
@@ -425,14 +408,15 @@ def create_pdf(row):
     
     pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "Score Breakdown", ln=True)
+    
+    # Attractive Table Styling
     pdf.set_font("Times", 'B', 12)
-    pdf.set_fill_color(240, 240, 240)
+    pdf.set_fill_color(220, 230, 245) # Light blue header
     pdf.cell(140, 8, "Category", 1, 0, 'L', True)
     pdf.cell(40, 8, "Points", 1, 1, 'C', True)
     
     pdf.set_font("Times", '', 12)
     
-    # Formatting CGPA decimal to fix the long number issue
     cgpa_formatted = f"{float(row['CGPA_Val']):.2f}" 
     
     data = [
@@ -444,12 +428,16 @@ def create_pdf(row):
         ("Extra-Curricular", row['Extra_Pts']),
         ("Industry/Internship", row['Industry_Pts'])
     ]
-    for cat, score in data:
-        pdf.cell(140, 8, cat, 1, 0, 'L')
-        pdf.cell(40, 8, str(score), 1, 1, 'C')
+    
+    for i, (cat, score) in enumerate(data):
+        fill = True if i % 2 == 0 else False
+        if fill:
+            pdf.set_fill_color(248, 248, 248) # Light grey for alternate rows
+        pdf.cell(140, 8, cat, 1, 0, 'L', fill)
+        pdf.cell(40, 8, str(score), 1, 1, 'C', fill)
+    
     pdf.ln(10)
     
-    # --- PDF SmarTrack Section ---
     pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "SmarTrack: Holistic Well-being Recommendation", ln=True)
     pdf.set_font("Times", 'I', 12)
@@ -467,8 +455,9 @@ def create_pdf(row):
         
     pdf.multi_cell(0, 8, fb_text)
     
-    pdf.ln(10)
-    pdf.set_font("Times", '', 10) # Keeping footer slightly smaller
+    # Footer fixed to the bottom of the current page
+    pdf.set_y(-15)
+    pdf.set_font("Times", 'I', 8) 
     pdf.cell(0, 10, "Generated by SmarTrack Digital System", align='C')
     
     return pdf.output(dest='S').encode('latin-1')
@@ -497,7 +486,6 @@ def process_and_score_data(df):
             v = str(val).lower().strip()
             return v not in ['nan', '', 'none', 'select', 'choose', 'select course', 'other'] and len(v) > 2
         
-        # SMART CATEGORY FIX
         for col in [col_hum, col_sci, col_comm]:
             if col and is_valid(row[col]):
                 val = str(row[col]).strip()
@@ -608,7 +596,6 @@ def feedback_section(student_name, current_feedback, unique_key_suffix):
     with st.form(key=f"fb_{clean_name}_{unique_key_suffix}"):
         st.write(f"📝 Feedback for {clean_name}")
         
-        # MODIFICATION 1: Empty box if NO feedback yet
         display_val = "" if current_feedback == "No feedback yet" else current_feedback
         feedback_text = st.text_area("Enter Feedback:", value=display_val, height=100)
         
@@ -732,7 +719,6 @@ if df_raw is not None:
                             st.plotly_chart(fig2, use_container_width=True)
                         st.markdown("---")
                         
-                        # --- 1. DETAILED ACTIVITY LOG ---
                         st.markdown("### 📌 Detailed Activity Log")
                         details_df = get_activity_details_df(raw_row, df_raw.columns)
                         if not details_df.empty: st.dataframe(details_df, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
@@ -740,7 +726,6 @@ if df_raw is not None:
                         
                         st.markdown("---")
                         
-                        # --- 2. SMARTRACK SECTION & PERSONALIZED OPPORTUNITIES ---
                         st.markdown(f"### 🧠 Personal Development Analysis for {row['Name']}")
                         areas, white_areas, gray_areas, black_areas, recommendation = get_smartrack_analysis(row)
                         
@@ -764,7 +749,6 @@ if df_raw is not None:
                         
                         st.markdown("---")
                         
-                        # DYNAMIC PERSONALIZED OPPORTUNITIES
                         st.markdown("#### 🎯 Curated Opportunities For You")
                         st.write("Based on your performance profile and academic year, we recommend getting involved in these areas:")
                         
@@ -778,14 +762,18 @@ if df_raw is not None:
                         
                         st.markdown("---")
 
-                        # --- 3. UPDATE FEEDBACK SECTION ---
                         r_col1, r_col2 = st.columns([0.8, 0.2])
                         with r_col1:
                               st.markdown(f"#### ✍️ Update Feedback for {row['Name']}")
                               feedback_section(row['Name'], row['Teacher_Feedback'], "dashboard")
                         with r_col2:
                             st.write(""); st.write("")
-                            st.download_button(label="📄 Download PDF Report", data=create_pdf(row), file_name=f"{row['Name']}_Report.pdf", mime='application/pdf')
+                            
+                            # Clean the file name so it has no illegal characters
+                            safe_course_name = re.sub(r'[\\/*?:"<>|]', "", str(row['Stream']))
+                            new_pdf_name = f"{row['Name']}_{safe_course_name}_Year{row['Year']}.pdf"
+                            
+                            st.download_button(label="📄 Download PDF Report", data=create_pdf(row), file_name=new_pdf_name, mime='application/pdf')
                 else: st.info("⚠️ No students found in this Year/Course.")
             else: st.info("👈 Please select a Stream and Year from the sidebar to view student details.")
 
