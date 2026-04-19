@@ -339,7 +339,6 @@ def fetch_study_materials(stream_name, current_year):
             2: ["Real Analysis", "Differential Equations", "Theory of Real Functions"],
             3: ["Metric Spaces and Complex Analysis", "Ring Theory and Linear Algebra"]
         },
-        # Yahan par naya Chemistry aur Physical Science ka data add kiya hai
         "chemistry": {
             1: ["Atomic Structure and Chemical Bonding", "States of Matter and Ionic Equilibrium", "Fundamentals of Organic Chemistry"],
             2: ["Chemical Thermodynamics", "Solutions and Phase Equilibrium", "Chemistry of s- and p-Block Elements"],
@@ -354,7 +353,7 @@ def fetch_study_materials(stream_name, current_year):
 
     found_match = False
     
-    # SMART EXTRACTOR: Creates dynamic links for multiple subjects (e.g. Physical Science + Chemistry)
+    # SMART EXTRACTOR: Creates dynamic links for multiple subjects
     for keyword, y_data in base_subjects.items():
         if keyword in course:
             found_match = True
@@ -373,7 +372,6 @@ def fetch_study_materials(stream_name, current_year):
                 pyq1 = f"https://www.google.com/search?q=Delhi+University+{subj.replace(' ', '+')}+PYQ+PDF"
                 pyq3 = f"https://www.google.com/search?q=DU+Buddy+{subj.replace(' ', '+')}+Previous+Year+Question+Papers"
 
-                # Subjects directly overwrite / update the dict (prevents duplicates if physics/math overlap)
                 resources[subj] = {
                     "syllabus": f"NEP Syllabus Guidelines & Reference Books: {ref_book}",
                     "video": video_link,
@@ -397,16 +395,18 @@ def create_pdf(row):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
+    # MODIFICATION 2: Using 'ignore' drops emojis so they don't turn into ????
     def clean(text):
-        return str(text).encode('latin-1', 'replace').decode('latin-1')
+        return str(text).encode('latin-1', 'ignore').decode('latin-1').strip()
     
-    pdf.set_font("Arial", 'B', 16)
+    # MODIFICATION 3: Change "Arial" to "Times" and Standardize Font Size to 12
+    pdf.set_font("Times", 'B', 14) # Title slightly larger for aesthetic
     pdf.cell(0, 10, "SmarTrack Student Report", ln=True, align='C')
     pdf.ln(5)
     
-    pdf.set_font("Arial", 'B', 12)
+    pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "Student Profile", ln=True)
-    pdf.set_font("Arial", '', 11)
+    pdf.set_font("Times", '', 12)
     
     pdf.cell(0, 8, f"Name: {clean(row['Name'])}", ln=True)
     pdf.cell(0, 8, f"Roll No: {clean(row.get('Roll_No', 'N/A'))}", ln=True)
@@ -415,24 +415,28 @@ def create_pdf(row):
     pdf.cell(0, 8, f"Phone: {clean(row.get('Phone_No', 'N/A'))}", ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Arial", 'B', 12)
+    pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "Performance Summary", ln=True)
-    pdf.set_font("Arial", '', 11)
+    pdf.set_font("Times", '', 12)
     pdf.cell(0, 8, f"Total SmarTrack Score: {row['Total SmarTrack Score']}", ln=True)
     pdf.cell(0, 8, f"Status: {clean(row['Status_Text'])}", ln=True)
     pdf.cell(0, 8, f"Batch Rank: #{int(row['Rank'])}", ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Arial", 'B', 12)
+    pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "Score Breakdown", ln=True)
-    pdf.set_font("Arial", 'B', 10)
+    pdf.set_font("Times", 'B', 12)
     pdf.set_fill_color(240, 240, 240)
     pdf.cell(140, 8, "Category", 1, 0, 'L', True)
     pdf.cell(40, 8, "Points", 1, 1, 'C', True)
     
-    pdf.set_font("Arial", '', 10)
+    pdf.set_font("Times", '', 12)
+    
+    # Formatting CGPA decimal to fix the long number issue
+    cgpa_formatted = f"{float(row['CGPA_Val']):.2f}" 
+    
     data = [
-        ("CGPA Score", f"{row['CGPA_Val']} (Pts: {row['CGPA_Pts']})"),
+        ("CGPA Score", f"{cgpa_formatted} (Pts: {row['CGPA_Pts']})"),
         ("Sports", row['Sports_Pts']),
         ("Research", row['Research_Pts']),
         ("NCC", row['NCC_Pts']),
@@ -446,20 +450,25 @@ def create_pdf(row):
     pdf.ln(10)
     
     # --- PDF SmarTrack Section ---
-    pdf.set_font("Arial", 'B', 12)
+    pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "SmarTrack: Holistic Well-being Recommendation", ln=True)
-    pdf.set_font("Arial", 'I', 11)
+    pdf.set_font("Times", 'I', 12)
     _, _, _, _, ai_reco = get_smartrack_analysis(row)
     pdf.multi_cell(0, 8, clean(ai_reco))
     pdf.ln(10)
 
-    pdf.set_font("Arial", 'B', 12)
+    pdf.set_font("Times", 'B', 12)
     pdf.cell(0, 10, "Teacher Feedback", ln=True)
-    pdf.set_font("Arial", 'I', 11)
-    pdf.multi_cell(0, 8, clean(row['Teacher_Feedback']))
+    pdf.set_font("Times", 'I', 12)
+    
+    fb_text = clean(row['Teacher_Feedback'])
+    if fb_text.lower() == "no feedback yet":
+        fb_text = ""
+        
+    pdf.multi_cell(0, 8, fb_text)
     
     pdf.ln(10)
-    pdf.set_font("Arial", '', 8)
+    pdf.set_font("Times", '', 10) # Keeping footer slightly smaller
     pdf.cell(0, 10, "Generated by SmarTrack Digital System", align='C')
     
     return pdf.output(dest='S').encode('latin-1')
@@ -494,11 +503,9 @@ def process_and_score_data(df):
                 val = str(row[col]).strip()
                 v_lower = val.lower()
                 
-                # 1. Exact overrides for confusing subjects
                 if 'political science' in v_lower or 'home science' in v_lower:
                     return val, "Humanities"
                 
-                # 2. Check Degree Prefixes First
                 if any(k in v_lower for k in ['b.a', 'ba ', 'ba(', 'humanities', 'arts']):
                     return val, "Humanities"
                 if any(k in v_lower for k in ['b.com', 'bcom', 'commerce', 'management']):
@@ -506,7 +513,6 @@ def process_and_score_data(df):
                 if any(k in v_lower for k in ['b.sc', 'bsc', 'science']):
                     return val, "Science"
                     
-                # 3. Subject-based fallbacks
                 if 'eco' in v_lower or 'history' in v_lower or 'english' in v_lower: return val, "Humanities"
                 if 'computer' in v_lower or 'math' in v_lower or 'physics' in v_lower: return val, "Science"
 
@@ -601,7 +607,11 @@ def feedback_section(student_name, current_feedback, unique_key_suffix):
     clean_name = student_name.replace('🏅 ', '').replace(' 🔴', '').strip()
     with st.form(key=f"fb_{clean_name}_{unique_key_suffix}"):
         st.write(f"📝 Feedback for {clean_name}")
-        feedback_text = st.text_area("Enter Feedback:", value=current_feedback, height=100)
+        
+        # MODIFICATION 1: Empty box if NO feedback yet
+        display_val = "" if current_feedback == "No feedback yet" else current_feedback
+        feedback_text = st.text_area("Enter Feedback:", value=display_val, height=100)
+        
         c1, c2 = st.columns([0.4, 0.6])
         if c1.form_submit_button("💾 Save / Update"):
             df_local = pd.read_csv("student_data.csv") if os.path.exists("student_data.csv") else pd.DataFrame(columns=['Name', 'Teacher_Feedback'])
@@ -746,9 +756,9 @@ if df_raw is not None:
                         
                         with text_col:
                             st.write(""); st.write("")
-                            st.success(f"*⚪ Strengths (White Areas):* " + (", ".join(white_areas) if white_areas else "None yet"))
-                            st.warning(f"*🔘 Average (Gray Areas):* " + (", ".join(gray_areas) if gray_areas else "None"))
-                            st.error(f"*⚫ Needs Focus (Black Areas):* " + (", ".join(black_areas) if black_areas else "None! Amazing!"))
+                            st.success(f"⚪ Strengths (White Areas): " + (", ".join(white_areas) if white_areas else "None yet"))
+                            st.warning(f"🔘 Average (Gray Areas): " + (", ".join(gray_areas) if gray_areas else "None"))
+                            st.error(f"⚫ Needs Focus (Black Areas): " + (", ".join(black_areas) if black_areas else "None! Amazing!"))
                             st.markdown("#### 💡 SmarTrack Recommendation")
                             st.info(recommendation)
                         
@@ -760,7 +770,7 @@ if df_raw is not None:
                         
                         personalized_opps = fetch_personalized_opportunities(white_areas, black_areas, row['Stream'], row['CGPA_Val'], row['Year'])
                         for opp in personalized_opps:
-                            st.markdown(f"- 🏆 *{opp['name']}* ({opp['date']}) - [{opp['type']}]")
+                            st.markdown(f"- 🏆 {opp['name']} ({opp['date']}) - [{opp['type']}]")
                             if opp['premium']:
                                 st.markdown(f"<div class='premium-note'>{opp['note']}</div>", unsafe_allow_html=True)
                             else:
