@@ -377,46 +377,55 @@ def fetch_study_materials(stream_name, current_year):
 def create_pdf(row):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    # 1. Page margin for tightly fitting content without auto-breaking
+    pdf.set_auto_page_break(auto=False)
     
-    # Emojis ab ignore ho jayenge, ???? nahi aayega
     def clean(text):
         return str(text).encode('latin-1', 'ignore').decode('latin-1').strip()
     
-    pdf.set_font("Times", 'B', 14) 
-    pdf.cell(0, 10, "SmarTrack Student Report", ln=True, align='C')
-    pdf.ln(5)
+    # --- MAIN TITLE ---
+    pdf.set_font("Times", 'B', 16) 
+    pdf.cell(0, 8, "SmarTrack Student Report", ln=True, align='C')
+    pdf.ln(3)
     
+    # --- STUDENT PROFILE ---
     pdf.set_font("Times", 'B', 12)
-    pdf.cell(0, 10, "Student Profile", ln=True)
-    pdf.set_font("Times", '', 12)
+    pdf.set_text_color(0, 51, 102) 
+    pdf.cell(0, 6, "Student Profile", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Times", '', 11) 
     
-    pdf.cell(0, 8, f"Name: {clean(row['Name'])}", ln=True)
-    pdf.cell(0, 8, f"Roll No: {clean(row.get('Roll_No', 'N/A'))}", ln=True)
-    pdf.cell(0, 8, f"Stream: {clean(row['Stream'])} | Year: {row['Year']}", ln=True)
-    pdf.cell(0, 8, f"Email: {clean(row.get('Email_Id', 'N/A'))}", ln=True)
-    pdf.cell(0, 8, f"Phone: {clean(row.get('Phone_No', 'N/A'))}", ln=True)
-    pdf.ln(5)
+    pdf.cell(0, 5, f"Name: {clean(row['Name'])}", ln=True)
+    pdf.cell(0, 5, f"Roll No: {clean(row.get('Roll_No', 'N/A'))}", ln=True)
+    pdf.cell(0, 5, f"Stream: {clean(row['Stream'])} | Year: {row['Year']}", ln=True)
+    pdf.cell(0, 5, f"Email: {clean(row.get('Email_Id', 'N/A'))}", ln=True)
+    pdf.cell(0, 5, f"Phone: {clean(row.get('Phone_No', 'N/A'))}", ln=True)
+    pdf.ln(4)
     
+    # --- PERFORMANCE SUMMARY ---
     pdf.set_font("Times", 'B', 12)
-    pdf.cell(0, 10, "Performance Summary", ln=True)
-    pdf.set_font("Times", '', 12)
-    pdf.cell(0, 8, f"Total SmarTrack Score: {row['Total SmarTrack Score']}", ln=True)
-    pdf.cell(0, 8, f"Status: {clean(row['Status_Text'])}", ln=True)
-    pdf.cell(0, 8, f"Batch Rank: #{int(row['Rank'])}", ln=True)
-    pdf.ln(5)
+    pdf.set_text_color(0, 51, 102)
+    pdf.cell(0, 6, "Performance Summary", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Times", '', 11)
+    pdf.cell(0, 5, f"Total SmarTrack Score: {row['Total SmarTrack Score']}", ln=True)
+    pdf.cell(0, 5, f"Status: {clean(row['Status_Text'])}", ln=True)
+    pdf.cell(0, 5, f"Batch Rank: #{int(row['Rank'])}", ln=True)
+    pdf.ln(4)
     
+    # --- SCORE BREAKDOWN TABLE ---
     pdf.set_font("Times", 'B', 12)
-    pdf.cell(0, 10, "Score Breakdown", ln=True)
+    pdf.set_text_color(0, 51, 102)
+    pdf.cell(0, 6, "Score Breakdown", ln=True)
+    pdf.set_text_color(0, 0, 0)
     
-    # Attractive Table Styling
-    pdf.set_font("Times", 'B', 12)
-    pdf.set_fill_color(220, 230, 245) # Light blue header
-    pdf.cell(140, 8, "Category", 1, 0, 'L', True)
-    pdf.cell(40, 8, "Points", 1, 1, 'C', True)
+    pdf.set_font("Times", 'B', 11)
+    pdf.set_fill_color(235, 240, 248) 
+    pdf.set_draw_color(180, 180, 180) 
+    pdf.cell(140, 7, "  Category", border='B', align='L', fill=True) 
+    pdf.cell(40, 7, "Points  ", border='B', align='R', fill=True, ln=True)
     
-    pdf.set_font("Times", '', 12)
-    
+    pdf.set_font("Times", '', 11)
     cgpa_formatted = f"{float(row['CGPA_Val']):.2f}" 
     
     data = [
@@ -430,34 +439,41 @@ def create_pdf(row):
     ]
     
     for i, (cat, score) in enumerate(data):
-        fill = True if i % 2 == 0 else False
+        fill = True if i % 2 != 0 else False
         if fill:
-            pdf.set_fill_color(248, 248, 248) # Light grey for alternate rows
-        pdf.cell(140, 8, cat, 1, 0, 'L', fill)
-        pdf.cell(40, 8, str(score), 1, 1, 'C', fill)
+            pdf.set_fill_color(250, 250, 250) 
+        pdf.cell(140, 6, f"  {cat}", border='B', align='L', fill=fill)
+        pdf.cell(40, 6, f"{str(score)}  ", border='B', align='R', fill=fill, ln=True)
     
-    pdf.ln(10)
+    pdf.ln(5)
     
+    # --- RECOMMENDATION ---
     pdf.set_font("Times", 'B', 12)
-    pdf.cell(0, 10, "SmarTrack: Holistic Well-being Recommendation", ln=True)
-    pdf.set_font("Times", 'I', 12)
+    pdf.set_text_color(0, 51, 102)
+    pdf.cell(0, 6, "SmarTrack: Holistic Well-being Recommendation", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Times", 'I', 11)
     _, _, _, _, ai_reco = get_smartrack_analysis(row)
-    pdf.multi_cell(0, 8, clean(ai_reco))
-    pdf.ln(10)
+    pdf.multi_cell(0, 5, clean(ai_reco))
+    pdf.ln(4)
 
+    # --- TEACHER FEEDBACK ---
     pdf.set_font("Times", 'B', 12)
-    pdf.cell(0, 10, "Teacher Feedback", ln=True)
-    pdf.set_font("Times", 'I', 12)
+    pdf.set_text_color(0, 51, 102)
+    pdf.cell(0, 6, "Teacher Feedback", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Times", 'I', 11)
     
     fb_text = clean(row['Teacher_Feedback'])
     if fb_text.lower() == "no feedback yet":
-        fb_text = ""
+        fb_text = "No teacher feedback provided at this time."
         
-    pdf.multi_cell(0, 8, fb_text)
+    pdf.multi_cell(0, 5, fb_text)
     
-    # Footer fixed to the bottom of the current page
-    pdf.set_y(-15)
+    # 2. GUARANTEE FOR 1-PAGE FOOTER
+    pdf.set_y(-12) 
     pdf.set_font("Times", 'I', 8) 
+    pdf.set_text_color(128, 128, 128) 
     pdf.cell(0, 10, "Generated by SmarTrack Digital System", align='C')
     
     return pdf.output(dest='S').encode('latin-1')
@@ -769,7 +785,6 @@ if df_raw is not None:
                         with r_col2:
                             st.write(""); st.write("")
                             
-                            # Clean the file name so it has no illegal characters
                             safe_course_name = re.sub(r'[\\/*?:"<>|]', "", str(row['Stream']))
                             new_pdf_name = f"{row['Name']}_{safe_course_name}_Year{row['Year']}.pdf"
                             
