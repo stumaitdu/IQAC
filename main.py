@@ -76,7 +76,7 @@ def load_data():
     df = None
     if "docs.google.com" in FIXED_SHEET_LINK:
         try:
-            # FIX 1: Cache Busting logic applied
+            # Added cache buster so Google Sheet updates reflect immediately
             base_url = FIXED_SHEET_LINK.replace("/edit?usp=sharing", "/export?format=csv").replace("/edit", "/export?format=csv")
             url = f"{base_url}&dummy={int(time.time())}"
             df = pd.read_csv(url)
@@ -515,20 +515,19 @@ def process_and_score_data(df):
     res['Year'] = df[sem_col].apply(get_year_from_sem) if sem_col else 1
 
     # =================================================================
-    # FIX 2: UNIVERSAL CGPA CALCULATION (Latest Semester Automatically)
+    # 🔥 FULLY DYNAMIC CGPA CALCULATION (Independent of semester count)
+    # Automatically finds ALL columns containing "sgpa" and computes mean
     # =================================================================
-    cgpa_col = next((c for c in df.columns if 'average cgpa' in c.lower() or 'cgpa' in c.lower()), None)
-    if not cgpa_col:
-        sgpa_cols = [c for c in df.columns if 'sgpa' in c.lower()]
-        if sgpa_cols:
-            # pd.to_numeric with errors='coerce' will turn 'Awaited' into NaN
-            numeric_sgpas = df[sgpa_cols].apply(pd.to_numeric, errors='coerce')
-            # mean() will automatically ignore the NaNs and take average of declared sems only
-            res['CGPA_Raw'] = numeric_sgpas.mean(axis=1).fillna(0.0)
-        else:
-            res['CGPA_Raw'] = 0.0
+    sgpa_cols = [c for c in df.columns if 'sgpa' in str(c).lower()]
+    
+    if len(sgpa_cols) > 0:
+        # Convert to numeric. Errors='coerce' makes blanks, '-', or "Awaited" into NaN
+        numeric_sgpas = df[sgpa_cols].apply(pd.to_numeric, errors='coerce')
+        # Mean automatically ignores NaN. If 3 columns have data out of 8, it divides by 3.
+        res['CGPA_Raw'] = numeric_sgpas.mean(axis=1).fillna(0.0)
     else:
-        res['CGPA_Raw'] = df[cgpa_col].apply(lambda x: float(x) if str(x).replace('.','',1).isdigit() else 0.0)
+        # Fallback to 0 if literally no SGPA columns exist
+        res['CGPA_Raw'] = 0.0
 
     res['Teacher_Feedback'] = df['Teacher_Feedback'] if 'Teacher_Feedback' in df.columns else "No feedback yet"
     
