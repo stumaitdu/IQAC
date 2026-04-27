@@ -540,6 +540,7 @@ def process_and_score_data(df):
     # =================================================================
     # 🔥 FULLY DYNAMIC CGPA CALCULATION (Independent of semester count)
     # Automatically finds ALL columns containing "sgpa" and computes mean
+    # Completely ignores "Average CGPA" column
     # =================================================================
     sgpa_cols = [c for c in df.columns if 'sgpa' in str(c).lower()]
     
@@ -748,7 +749,6 @@ if df_raw is not None:
                         st.markdown("### 📌 Detailed Activity Log")
                         details_df = get_activity_details_df(raw_row, df_raw.columns)
                         if not details_df.empty: 
-                            # Updated column_config to use "Evidence" instead of "Proof"
                             st.dataframe(details_df, use_container_width=True, hide_index=True, column_config={"Evidence": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
                         else: st.info("ℹ️ No detailed activity records found for this student.")
                         
@@ -829,37 +829,74 @@ if df_raw is not None:
 
         # --- TAB 3: HALL OF FAME ---
         with tab3:
-            st.markdown("<h2 class='centered-header'>🏆 Institution All-Rounders</h2>", unsafe_allow_html=True)
-            col1, col2, col3 = st.columns(3)
-            for col, title, keywords in [(col1, "HUMANITIES", ["Humanities"]), (col2, "SCIENCE", ["Science", "Sciences"]), (col3, "COMMERCE", ["Commerce", "Management"])]:
-                with col:
-                    st.markdown(f"<h5 style='text-align:center; border-bottom:3px solid #FFD700; padding-bottom:5px; margin-bottom:15px; color:#444;'>{title}</h5>", unsafe_allow_html=True)
-                    for year in range(1, 5):
-                        topper = df[(df['Category_Main'].apply(lambda x: any(k.lower() in str(x).lower() for k in keywords))) & (df['Year'] == year) & (df['Is_All_Rounder'] == True)]
-                        if not topper.empty:
-                            row = topper.iloc[0]
-                            st.markdown(f"""<div style="background-color: #fff; border: 1px solid #e0e0e0; border-left: 4px solid #00CC96; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><div style="font-size: 11px; font-weight: bold; color: #888; width: 45px;">YEAR {year}</div><div style="font-weight: 700; font-size: 13px; color: #333; flex-grow: 1; padding: 0 8px;">🏅 {row['Name']}</div><div style="font-weight: 700; font-size: 13px; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; border:1px solid #ddd; color: #333;">{row['Total SmarTrack Score']}</div></div>""", unsafe_allow_html=True)
-                            with st.expander(f"📂 View Activity Details for {row['Name']}"):
-                                details_df_hof = get_activity_details_df(df_raw.iloc[row['Original_Index']], df_raw.columns)
-                                if not details_df_hof.empty: 
-                                    st.dataframe(details_df_hof, use_container_width=True, hide_index=True, column_config={"Evidence": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
-                                else: st.write("No proof links found.")
-                                marksheet_col = next((c for c in df_raw.columns if 'upload' in c.lower() and 'marksheet' in c.lower()), None)
-                                if marksheet_col and str(df_raw.loc[row['Original_Index'], marksheet_col]).strip().lower() not in ['nan', '', 'none', 'no']:
-                                    st.markdown(f"""<div style="margin-top: 5px; margin-bottom: 10px;"><a href="{str(df_raw.loc[row['Original_Index'], marksheet_col]).strip()}" target="_blank" style="text-decoration: none;"><button style="background-color: #f0f2f6; border: 1px solid #dce4ef; padding: 8px 16px; border-radius: 4px; color: #0068c9; font-weight: 600; cursor: pointer;">📄 View Marksheet</button></a></div>""", unsafe_allow_html=True)
-                        else: st.markdown(f"""<div style="background-color: #f9f9f9; border: 1px dashed #ccc; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; opacity: 0.6;"><div style="font-size: 11px; font-weight: bold; color: #aaa; width: 45px;">YEAR {year}</div><div style="font-size: 12px; color: #aaa;">N/A</div></div>""", unsafe_allow_html=True)
-
-            st.markdown("---"); st.subheader("📝 Batch Toppers Table & Feedback")
-            all_toppers = df[df['Is_All_Rounder'] == True].sort_values(by=['Category_Main', 'Year']).copy()
-            marksheet_col = next((c for c in df_raw.columns if 'upload' in c.lower() and 'marksheet' in c.lower()), None)
-            all_toppers['Marksheet_View'] = df_raw.loc[all_toppers['Original_Index'], marksheet_col].values if marksheet_col else None
-            st.dataframe(all_toppers[['Name', 'Category_Main', 'Stream', 'Year', 'Total SmarTrack Score', 'CGPA_Pts', 'Marksheet_View', 'Teacher_Feedback']], use_container_width=True, hide_index=True, column_config={"Marksheet_View": st.column_config.LinkColumn("Marksheet", display_text="📄 View PDF"), "CGPA_Pts": st.column_config.NumberColumn("CGPA Points", format="%.1f"), "Total SmarTrack Score": st.column_config.NumberColumn("Score", format="%.1f")})
+            st.markdown("<h2 class='centered-header'>🏆 Institution All-Rounders (Hall of Fame)</h2>", unsafe_allow_html=True)
             
+            hof_data = []
+            categories = [("Humanities", ["Humanities"]), ("Commerce", ["Commerce", "Management"]), ("Science", ["Science", "Sciences"])]
+            
+            for cat_name, keywords in categories:
+                for year in range(1, 5):
+                    topper = df[(df['Category_Main'].apply(lambda x: any(k.lower() in str(x).lower() for k in keywords))) & (df['Year'] == year) & (df['Is_All_Rounder'] == True)]
+                    
+                    if not topper.empty:
+                        row = topper.iloc[0]
+                        marksheet_col = next((c for c in df_raw.columns if 'upload' in c.lower() and 'marksheet' in c.lower()), None)
+                        marksheet_link = str(df_raw.loc[row['Original_Index'], marksheet_col]).strip() if marksheet_col else None
+                        if marksheet_link and marksheet_link.lower() in ['nan', '', 'none', 'no']:
+                            marksheet_link = None
+                            
+                        hof_data.append({
+                            "Stream": cat_name,
+                            "Year": int(year),
+                            "Name": f"🏅 {row['Name']}",
+                            "Course": row['Stream'],
+                            "Score": row['Total SmarTrack Score'],
+                            "Marksheet": marksheet_link,
+                            "Teacher Feedback": row['Teacher_Feedback']
+                        })
+                    else:
+                        hof_data.append({
+                            "Stream": cat_name,
+                            "Year": int(year),
+                            "Name": "N/A",
+                            "Course": "-",
+                            "Score": None,
+                            "Marksheet": None,
+                            "Teacher Feedback": "-"
+                        })
+            
+            hof_df = pd.DataFrame(hof_data)
+            
+            st.dataframe(
+                hof_df, 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "Stream": st.column_config.TextColumn("Stream", width="small"),
+                    "Year": st.column_config.NumberColumn("Year", width="small"),
+                    "Name": st.column_config.TextColumn("Name", width="medium"),
+                    "Course": st.column_config.TextColumn("Course", width="medium"),
+                    "Score": st.column_config.NumberColumn("Score", format="%.1f", width="small"),
+                    "Marksheet": st.column_config.LinkColumn("Marksheet", display_text="📄 View PDF"),
+                    "Teacher Feedback": st.column_config.TextColumn("Teacher Feedback", width="large")
+                }
+            )
+            
+            st.markdown("---")
             st.markdown("### ✍️ Update Topper Feedback")
-            t_col_sel, t_col_form = st.columns([0.4, 0.6])
-            with t_col_sel: topper_student = st.selectbox("Select Topper to Update:", all_toppers['Name'].unique(), key="topper_select_fb")
-            with t_col_form:
-                if topper_student: feedback_section(topper_student, all_toppers[all_toppers['Name'] == topper_student]['Teacher_Feedback'].iloc[0], "hof_tab")
+            
+            valid_toppers = [name.replace('🏅 ', '') for name in hof_df['Name'] if name != "N/A"]
+            
+            if valid_toppers:
+                t_col_sel, t_col_form = st.columns([0.4, 0.6])
+                with t_col_sel: 
+                    topper_student = st.selectbox("Select Topper to Update:", valid_toppers, key="topper_select_fb")
+                with t_col_form:
+                    if topper_student:
+                        current_fb = df[df['Name'] == topper_student]['Teacher_Feedback'].iloc[0]
+                        feedback_section(topper_student, current_fb, "hof_tab")
+            else:
+                st.info("No All-Rounders available yet to update feedback.")
 
         # --- TAB 4: TOP PERFORMERS ---
         with tab4:
