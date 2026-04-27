@@ -6,6 +6,7 @@ import os
 import re
 from fpdf import FPDF
 import numpy as np
+import time
 
 # ==========================================
 # 1. PAGE CONFIGURATION
@@ -75,7 +76,9 @@ def load_data():
     df = None
     if "docs.google.com" in FIXED_SHEET_LINK:
         try:
-            url = FIXED_SHEET_LINK.replace("/edit?usp=sharing", "/export?format=csv").replace("/edit", "/export?format=csv")
+            # FIX 1: Cache Busting logic applied
+            base_url = FIXED_SHEET_LINK.replace("/edit?usp=sharing", "/export?format=csv").replace("/edit", "/export?format=csv")
+            url = f"{base_url}&dummy={int(time.time())}"
             df = pd.read_csv(url)
         except: pass
     
@@ -377,55 +380,44 @@ def fetch_study_materials(stream_name, current_year):
 def create_pdf(row):
     pdf = FPDF()
     pdf.add_page()
-    # 1. Page margin for tightly fitting content without auto-breaking
-    pdf.set_auto_page_break(auto=False)
+    pdf.set_auto_page_break(auto=True, margin=15)
     
     def clean(text):
         return str(text).encode('latin-1', 'ignore').decode('latin-1').strip()
     
-    # --- MAIN TITLE ---
-    pdf.set_font("Times", 'B', 16) 
-    pdf.cell(0, 8, "SmarTrack Student Report", ln=True, align='C')
-    pdf.ln(3)
+    pdf.set_font("Times", 'B', 14) 
+    pdf.cell(0, 10, "SmarTrack Student Report", ln=True, align='C')
+    pdf.ln(5)
     
-    # --- STUDENT PROFILE ---
     pdf.set_font("Times", 'B', 12)
-    pdf.set_text_color(0, 51, 102) 
-    pdf.cell(0, 6, "Student Profile", ln=True)
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Times", '', 11) 
+    pdf.cell(0, 10, "Student Profile", ln=True)
+    pdf.set_font("Times", '', 12)
     
-    pdf.cell(0, 5, f"Name: {clean(row['Name'])}", ln=True)
-    pdf.cell(0, 5, f"Roll No: {clean(row.get('Roll_No', 'N/A'))}", ln=True)
-    pdf.cell(0, 5, f"Stream: {clean(row['Stream'])} | Year: {row['Year']}", ln=True)
-    pdf.cell(0, 5, f"Email: {clean(row.get('Email_Id', 'N/A'))}", ln=True)
-    pdf.cell(0, 5, f"Phone: {clean(row.get('Phone_No', 'N/A'))}", ln=True)
-    pdf.ln(4)
+    pdf.cell(0, 8, f"Name: {clean(row['Name'])}", ln=True)
+    pdf.cell(0, 8, f"Roll No: {clean(row.get('Roll_No', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Stream: {clean(row['Stream'])} | Year: {row['Year']}", ln=True)
+    pdf.cell(0, 8, f"Email: {clean(row.get('Email_Id', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Phone: {clean(row.get('Phone_No', 'N/A'))}", ln=True)
+    pdf.ln(5)
     
-    # --- PERFORMANCE SUMMARY ---
     pdf.set_font("Times", 'B', 12)
-    pdf.set_text_color(0, 51, 102)
-    pdf.cell(0, 6, "Performance Summary", ln=True)
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Times", '', 11)
-    pdf.cell(0, 5, f"Total SmarTrack Score: {row['Total SmarTrack Score']}", ln=True)
-    pdf.cell(0, 5, f"Status: {clean(row['Status_Text'])}", ln=True)
-    pdf.cell(0, 5, f"Batch Rank: #{int(row['Rank'])}", ln=True)
-    pdf.ln(4)
+    pdf.cell(0, 10, "Performance Summary", ln=True)
+    pdf.set_font("Times", '', 12)
+    pdf.cell(0, 8, f"Total SmarTrack Score: {row['Total SmarTrack Score']}", ln=True)
+    pdf.cell(0, 8, f"Status: {clean(row['Status_Text'])}", ln=True)
+    pdf.cell(0, 8, f"Batch Rank: #{int(row['Rank'])}", ln=True)
+    pdf.ln(5)
     
-    # --- SCORE BREAKDOWN TABLE ---
     pdf.set_font("Times", 'B', 12)
-    pdf.set_text_color(0, 51, 102)
-    pdf.cell(0, 6, "Score Breakdown", ln=True)
-    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "Score Breakdown", ln=True)
     
-    pdf.set_font("Times", 'B', 11)
-    pdf.set_fill_color(235, 240, 248) 
-    pdf.set_draw_color(180, 180, 180) 
-    pdf.cell(140, 7, "  Category", border='B', align='L', fill=True) 
-    pdf.cell(40, 7, "Points  ", border='B', align='R', fill=True, ln=True)
+    pdf.set_font("Times", 'B', 12)
+    pdf.set_fill_color(220, 230, 245) 
+    pdf.cell(140, 8, "Category", 1, 0, 'L', True)
+    pdf.cell(40, 8, "Points", 1, 1, 'C', True)
     
-    pdf.set_font("Times", '', 11)
+    pdf.set_font("Times", '', 12)
+    
     cgpa_formatted = f"{float(row['CGPA_Val']):.2f}" 
     
     data = [
@@ -439,41 +431,33 @@ def create_pdf(row):
     ]
     
     for i, (cat, score) in enumerate(data):
-        fill = True if i % 2 != 0 else False
+        fill = True if i % 2 == 0 else False
         if fill:
-            pdf.set_fill_color(250, 250, 250) 
-        pdf.cell(140, 6, f"  {cat}", border='B', align='L', fill=fill)
-        pdf.cell(40, 6, f"{str(score)}  ", border='B', align='R', fill=fill, ln=True)
+            pdf.set_fill_color(248, 248, 248) 
+        pdf.cell(140, 8, cat, 1, 0, 'L', fill)
+        pdf.cell(40, 8, str(score), 1, 1, 'C', fill)
     
-    pdf.ln(5)
+    pdf.ln(10)
     
-    # --- RECOMMENDATION ---
     pdf.set_font("Times", 'B', 12)
-    pdf.set_text_color(0, 51, 102)
-    pdf.cell(0, 6, "SmarTrack: Holistic Well-being Recommendation", ln=True)
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Times", 'I', 11)
+    pdf.cell(0, 10, "SmarTrack: Holistic Well-being Recommendation", ln=True)
+    pdf.set_font("Times", 'I', 12)
     _, _, _, _, ai_reco = get_smartrack_analysis(row)
-    pdf.multi_cell(0, 5, clean(ai_reco))
-    pdf.ln(4)
+    pdf.multi_cell(0, 8, clean(ai_reco))
+    pdf.ln(10)
 
-    # --- TEACHER FEEDBACK ---
     pdf.set_font("Times", 'B', 12)
-    pdf.set_text_color(0, 51, 102)
-    pdf.cell(0, 6, "Teacher Feedback", ln=True)
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Times", 'I', 11)
+    pdf.cell(0, 10, "Teacher Feedback", ln=True)
+    pdf.set_font("Times", 'I', 12)
     
     fb_text = clean(row['Teacher_Feedback'])
     if fb_text.lower() == "no feedback yet":
-        fb_text = "No teacher feedback provided at this time."
+        fb_text = ""
         
-    pdf.multi_cell(0, 5, fb_text)
+    pdf.multi_cell(0, 8, fb_text)
     
-    # 2. GUARANTEE FOR 1-PAGE FOOTER
-    pdf.set_y(-12) 
+    pdf.set_y(-15)
     pdf.set_font("Times", 'I', 8) 
-    pdf.set_text_color(128, 128, 128) 
     pdf.cell(0, 10, "Generated by SmarTrack Digital System", align='C')
     
     return pdf.output(dest='S').encode('latin-1')
@@ -507,15 +491,10 @@ def process_and_score_data(df):
                 val = str(row[col]).strip()
                 v_lower = val.lower()
                 
-                if 'political science' in v_lower or 'home science' in v_lower:
-                    return val, "Humanities"
-                
-                if any(k in v_lower for k in ['b.a', 'ba ', 'ba(', 'humanities', 'arts']):
-                    return val, "Humanities"
-                if any(k in v_lower for k in ['b.com', 'bcom', 'commerce', 'management']):
-                    return val, "Commerce"
-                if any(k in v_lower for k in ['b.sc', 'bsc', 'science']):
-                    return val, "Science"
+                if 'political science' in v_lower or 'home science' in v_lower: return val, "Humanities"
+                if any(k in v_lower for k in ['b.a', 'ba ', 'ba(', 'humanities', 'arts']): return val, "Humanities"
+                if any(k in v_lower for k in ['b.com', 'bcom', 'commerce', 'management']): return val, "Commerce"
+                if any(k in v_lower for k in ['b.sc', 'bsc', 'science']): return val, "Science"
                     
                 if 'eco' in v_lower or 'history' in v_lower or 'english' in v_lower: return val, "Humanities"
                 if 'computer' in v_lower or 'math' in v_lower or 'physics' in v_lower: return val, "Science"
@@ -535,10 +514,19 @@ def process_and_score_data(df):
         except: return 1
     res['Year'] = df[sem_col].apply(get_year_from_sem) if sem_col else 1
 
+    # =================================================================
+    # FIX 2: UNIVERSAL CGPA CALCULATION (Latest Semester Automatically)
+    # =================================================================
     cgpa_col = next((c for c in df.columns if 'average cgpa' in c.lower() or 'cgpa' in c.lower()), None)
     if not cgpa_col:
-          sgpa_cols = [c for c in df.columns if 'sgpa' in c.lower()]
-          res['CGPA_Raw'] = df[sgpa_cols].apply(pd.to_numeric, errors='coerce').mean(axis=1).fillna(0) if sgpa_cols else 0.0
+        sgpa_cols = [c for c in df.columns if 'sgpa' in c.lower()]
+        if sgpa_cols:
+            # pd.to_numeric with errors='coerce' will turn 'Awaited' into NaN
+            numeric_sgpas = df[sgpa_cols].apply(pd.to_numeric, errors='coerce')
+            # mean() will automatically ignore the NaNs and take average of declared sems only
+            res['CGPA_Raw'] = numeric_sgpas.mean(axis=1).fillna(0.0)
+        else:
+            res['CGPA_Raw'] = 0.0
     else:
         res['CGPA_Raw'] = df[cgpa_col].apply(lambda x: float(x) if str(x).replace('.','',1).isdigit() else 0.0)
 
