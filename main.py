@@ -76,7 +76,7 @@ def load_data():
     df = None
     if "docs.google.com" in FIXED_SHEET_LINK:
         try:
-            # Added cache buster so Google Sheet updates reflect immediately
+            # FIX: Added cache buster so Google Sheet updates reflect immediately
             base_url = FIXED_SHEET_LINK.replace("/edit?usp=sharing", "/export?format=csv").replace("/edit", "/export?format=csv")
             url = f"{base_url}&dummy={int(time.time())}"
             df = pd.read_csv(url)
@@ -126,36 +126,59 @@ def calculate_points_for_text(text, cat_type="std"):
 
 def get_activity_details_df(row, all_columns):
     details = []
+    
+    # Identify relevant columns based on keywords
     level_cols = [c for c in all_columns if 'level' in str(c).lower()]
     name_cols = [c for c in all_columns if 'activity' in str(c).lower() and 'name' in str(c).lower()]
+    
+    # Detect "Organizing Body" columns
+    org_cols = [c for c in all_columns if 'organizing' in str(c).lower() or 'body' in str(c).lower() or 'institution' in str(c).lower()]
+    
     date_cols = [c for c in all_columns if 'date' in str(c).lower()]
     proof_cols = [c for c in all_columns if 'proof' in str(c).lower()]
     
     for i, lvl_col in enumerate(level_cols):
         col_name = str(lvl_col).lower()
         cat_name = "Extra-Curricular"
+        
+        # Categorization logic
         if any(x in col_name for x in ['aer', 'research', 'paper', 'publication', 'academic']): cat_name = 'Research'
         elif any(x in col_name for x in ['oa', 'outreach', 'social', 'nss']): cat_name = 'Outreach'
         elif any(x in col_name for x in ['sp', 'sport']): cat_name = 'Sports'
         elif 'ncc' in col_name: cat_name = 'NCC'
         elif any(x in col_name for x in ['ie', 'industry', 'intern', 'job']): cat_name = 'Industry/Internship'
         
+        # Map columns by index
         act_col = name_cols[i] if i < len(name_cols) else None
+        org_col = org_cols[i] if i < len(org_cols) else None
         date_col = date_cols[i] if i < len(date_cols) else None
         proof_col = proof_cols[i] if i < len(proof_cols) else None
         
+        # Extract values
         lvl_val = str(row[lvl_col]).strip()
         act_val = str(row[act_col]).strip() if act_col else "Activity"
+        org_val = str(row[org_col]).strip() if org_col else "-"
         date_val = str(row[date_col]).strip() if date_col else "-"
         proof_val = str(row[proof_col]).strip() if proof_col else None
         
+        # Check if the activity actually has a level selected
         if lvl_val.lower() not in ['nan', '', 'none', 'no', '0', '0.0', 'select']:
              pts = calculate_points_for_text(lvl_val)
              if act_val.lower() in ['nan', '']: act_val = "Not Mentioned"
+             if org_val.lower() in ['nan', '']: org_val = "-"
              if date_val.lower() in ['nan', '']: date_val = "-"
              if proof_val and proof_val.lower() in ['nan', '', 'none', 'no']: proof_val = None
 
-             details.append({"Category": cat_name, "Activity Name": act_val, "Level": lvl_val, "Date": date_val, "Proof": proof_val, "Points": pts})
+             # Append to the list (Order matters here for the final table display)
+             details.append({
+                 "Category": cat_name, 
+                 "Activity Name": act_val, 
+                 "Organizing Body": org_val, 
+                 "Level": lvl_val, 
+                 "Date": date_val, 
+                 "Evidence": proof_val, 
+                 "Points": pts
+             })
 
     if not details: return pd.DataFrame()
     return pd.DataFrame(details)
@@ -523,7 +546,7 @@ def process_and_score_data(df):
     if len(sgpa_cols) > 0:
         # Convert to numeric. Errors='coerce' makes blanks, '-', or "Awaited" into NaN
         numeric_sgpas = df[sgpa_cols].apply(pd.to_numeric, errors='coerce')
-        # Mean automatically ignores NaN. If 3 columns have data out of 8, it divides by 3.
+        # Mean automatically ignores NaN.
         res['CGPA_Raw'] = numeric_sgpas.mean(axis=1).fillna(0.0)
     else:
         # Fallback to 0 if literally no SGPA columns exist
@@ -724,7 +747,9 @@ if df_raw is not None:
                         
                         st.markdown("### 📌 Detailed Activity Log")
                         details_df = get_activity_details_df(raw_row, df_raw.columns)
-                        if not details_df.empty: st.dataframe(details_df, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
+                        if not details_df.empty: 
+                            # Updated column_config to use "Evidence" instead of "Proof"
+                            st.dataframe(details_df, use_container_width=True, hide_index=True, column_config={"Evidence": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
                         else: st.info("ℹ️ No detailed activity records found for this student.")
                         
                         st.markdown("---")
@@ -816,7 +841,8 @@ if df_raw is not None:
                             st.markdown(f"""<div style="background-color: #fff; border: 1px solid #e0e0e0; border-left: 4px solid #00CC96; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"><div style="font-size: 11px; font-weight: bold; color: #888; width: 45px;">YEAR {year}</div><div style="font-weight: 700; font-size: 13px; color: #333; flex-grow: 1; padding: 0 8px;">🏅 {row['Name']}</div><div style="font-weight: 700; font-size: 13px; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; border:1px solid #ddd; color: #333;">{row['Total SmarTrack Score']}</div></div>""", unsafe_allow_html=True)
                             with st.expander(f"📂 View Activity Details for {row['Name']}"):
                                 details_df_hof = get_activity_details_df(df_raw.iloc[row['Original_Index']], df_raw.columns)
-                                if not details_df_hof.empty: st.dataframe(details_df_hof, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
+                                if not details_df_hof.empty: 
+                                    st.dataframe(details_df_hof, use_container_width=True, hide_index=True, column_config={"Evidence": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
                                 else: st.write("No proof links found.")
                                 marksheet_col = next((c for c in df_raw.columns if 'upload' in c.lower() and 'marksheet' in c.lower()), None)
                                 if marksheet_col and str(df_raw.loc[row['Original_Index'], marksheet_col]).strip().lower() not in ['nan', '', 'none', 'no']:
@@ -854,7 +880,8 @@ if df_raw is not None:
                                 st.markdown(f"""<div class="compact-topper-row"><div style="display:flex; align-items:center; width: 100%;"><div class="ct-rank">{rank_icon}</div><div style="flex-grow: 1;"><div class="ct-name">{row['Name']}</div><div class="ct-details">🆔 <b>{row.get('Roll_No', 'N/A')}</b> &nbsp;|&nbsp; 📞 {row.get('Phone_No', 'N/A')} &nbsp;|&nbsp; 📧 {row.get('Email_Id', 'N/A')}</div></div><div class="ct-stats"><div class="ct-score-box">🏆 {row['Total SmarTrack Score']} Pts</div><div class="ct-cgpa">🎓 CGPA: {row['CGPA_Val']:.2f}</div></div></div></div>""", unsafe_allow_html=True)
                                 with st.expander(f"📂 View Activity Details for {row['Name']}"):
                                     details_df_tp = get_activity_details_df(df_raw.iloc[row['Original_Index']], df_raw.columns)
-                                    if not details_df_tp.empty: st.dataframe(details_df_tp, use_container_width=True, hide_index=True, column_config={"Proof": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
+                                    if not details_df_tp.empty: 
+                                        st.dataframe(details_df_tp, use_container_width=True, hide_index=True, column_config={"Evidence": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
                                     else: st.write("No proof links found.")
                                     marksheet_col = next((c for c in df_raw.columns if 'upload' in c.lower() and 'marksheet' in c.lower()), None)
                                     if marksheet_col and str(df_raw.loc[row['Original_Index'], marksheet_col]).strip().lower() not in ['nan', '', 'none', 'no']:
