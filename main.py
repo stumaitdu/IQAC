@@ -76,7 +76,6 @@ def load_data():
     df = None
     if "docs.google.com" in FIXED_SHEET_LINK:
         try:
-            # FIX: Added cache buster so Google Sheet updates reflect immediately
             base_url = FIXED_SHEET_LINK.replace("/edit?usp=sharing", "/export?format=csv").replace("/edit", "/export?format=csv")
             url = f"{base_url}&dummy={int(time.time())}"
             df = pd.read_csv(url)
@@ -127,13 +126,9 @@ def calculate_points_for_text(text, cat_type="std"):
 def get_activity_details_df(row, all_columns):
     details = []
     
-    # Identify relevant columns based on keywords
     level_cols = [c for c in all_columns if 'level' in str(c).lower()]
     name_cols = [c for c in all_columns if 'activity' in str(c).lower() and 'name' in str(c).lower()]
-    
-    # Detect "Organizing Body" columns
     org_cols = [c for c in all_columns if 'organizing' in str(c).lower() or 'body' in str(c).lower() or 'institution' in str(c).lower()]
-    
     date_cols = [c for c in all_columns if 'date' in str(c).lower()]
     proof_cols = [c for c in all_columns if 'proof' in str(c).lower()]
     
@@ -141,27 +136,23 @@ def get_activity_details_df(row, all_columns):
         col_name = str(lvl_col).lower()
         cat_name = "Extra-Curricular"
         
-        # Categorization logic
         if any(x in col_name for x in ['aer', 'research', 'paper', 'publication', 'academic']): cat_name = 'Research'
         elif any(x in col_name for x in ['oa', 'outreach', 'social', 'nss']): cat_name = 'Outreach'
         elif any(x in col_name for x in ['sp', 'sport']): cat_name = 'Sports'
         elif 'ncc' in col_name: cat_name = 'NCC'
         elif any(x in col_name for x in ['ie', 'industry', 'intern', 'job']): cat_name = 'Industry/Internship'
         
-        # Map columns by index
         act_col = name_cols[i] if i < len(name_cols) else None
         org_col = org_cols[i] if i < len(org_cols) else None
         date_col = date_cols[i] if i < len(date_cols) else None
         proof_col = proof_cols[i] if i < len(proof_cols) else None
         
-        # Extract values
         lvl_val = str(row[lvl_col]).strip()
         act_val = str(row[act_col]).strip() if act_col else "Activity"
         org_val = str(row[org_col]).strip() if org_col else "-"
         date_val = str(row[date_col]).strip() if date_col else "-"
         proof_val = str(row[proof_col]).strip() if proof_col else None
         
-        # Check if the activity actually has a level selected
         if lvl_val.lower() not in ['nan', '', 'none', 'no', '0', '0.0', 'select']:
              pts = calculate_points_for_text(lvl_val)
              if act_val.lower() in ['nan', '']: act_val = "Not Mentioned"
@@ -169,7 +160,6 @@ def get_activity_details_df(row, all_columns):
              if date_val.lower() in ['nan', '']: date_val = "-"
              if proof_val and proof_val.lower() in ['nan', '', 'none', 'no']: proof_val = None
 
-             # Append to the list (Order matters here for the final table display)
              details.append({
                  "Category": cat_name, 
                  "Activity Name": act_val, 
@@ -216,71 +206,41 @@ def get_smartrack_analysis(row):
         
     return areas, white_areas, gray_areas, black_areas, recommendation
 
+# ==========================================
+# FIX: REALISTIC OPPORTUNITIES (No fake dates/events)
+# ==========================================
 def fetch_personalized_opportunities(white_areas, black_areas, course, cgpa_val, current_year):
     opps = []
     course_lower = str(course).lower()
-    try: year = int(current_year)
-    except: year = 1
 
     if 'Academics' in white_areas and cgpa_val >= 7.0:
         if any(k in course_lower for k in ['cs', 'computer', 'science']):
-            if year == 1:
-                opps.append({"name": "Freshman Intra-College Coding Sprint", "type": "Premium Academic", "date": "Next Month", "premium": True, "note": "🌟 You have a great start! Test your basic programming skills here."})
-            elif year == 2:
-                opps.append({"name": "State-Level Tech Symposium & Hackathon", "type": "Premium Academic", "date": "15 April", "premium": True, "note": "🌟 Use your strong core concepts to build real-world projects and compete!"})
-            else:
-                opps.append({"name": "Global Open Source & AI Fellowship", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Ready for the big leagues! Leverage your high CGPA for this advanced fellowship."})
-        
+            opps.append({"name": "Open Source Contributions & Hackathons", "type": "Academic Excellence", "premium": True, "note": "🌟 Leverage your strong academics to build real-world tech projects on GitHub or participate in national hackathons."})
         elif any(k in course_lower for k in ['commerce', 'b.com', 'eco']):
-            if year == 1:
-                opps.append({"name": "Foundation Business & Economics Quiz", "type": "Premium Academic", "date": "TBA", "premium": True, "note": "🌟 Great academic base! Sharpen your knowledge against peers."})
-            elif year == 2:
-                opps.append({"name": "National Finance & Strategy Case Challenge", "type": "Premium Academic", "date": "22 April", "premium": True, "note": "🌟 Compete with top minds by solving real-world corporate strategy cases."})
-            else:
-                opps.append({"name": "Pre-Placement Investment Banking Workshop", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Polish your stellar profile for top-tier corporate placements."})
-        
-        else: 
-            if year == 1:
-                opps.append({"name": "University Freshers Debate & Essay Fest", "type": "Premium Academic", "date": "Next Month", "premium": True, "note": "🌟 Express your strong academic thoughts on a bigger platform."})
-            elif year == 2:
-                opps.append({"name": "National Model United Nations (MUN)", "type": "Premium Academic", "date": "18 April", "premium": True, "note": "🌟 Use your analytical skills in policy drafting and diplomacy."})
-            else:
-                opps.append({"name": "National Level Research & Policy Conference", "type": "Premium Academic", "date": "May", "premium": True, "note": "🌟 Your academics are stellar! Try publishing and presenting a research paper."})
+            opps.append({"name": "Corporate Case Study & Strategy Competitions", "type": "Academic Excellence", "premium": True, "note": "🌟 Compete in national finance and strategy case challenges to build a stellar corporate profile."})
+        else:
+            opps.append({"name": "Research Publications & Model UN (MUN)", "type": "Academic Excellence", "premium": True, "note": "🌟 Use your strong analytical skills in policy drafting, diplomacy, or publishing academic review papers."})
                 
     elif cgpa_val < 7.0:
-        if year == 1:
-            opps.append({"name": "First-Year Transition & Exam Strategy Workshop", "type": "Academic Support", "date": "Upcoming Week", "premium": False, "note": "📚 Build a strong base early on! Use the 'Study Material' tab to boost your grades safely."})
-        elif year == 2:
-            opps.append({"name": "Core Subject Peer Tutoring & Mentorship", "type": "Academic Support", "date": "Ongoing", "premium": False, "note": "📚 Second year gets tough. Join peer study groups to clear concepts and improve your CGPA."})
-        else:
-            opps.append({"name": "Final Year Intensive Grade Improvement Bootcamp", "type": "Academic Support", "date": "Next Weekend", "premium": False, "note": "📚 It's not too late to push your CGPA up before graduation. Focus on High-Yield topics!"})
+        opps.append({"name": "Peer Study Groups & PYQ Practice", "type": "Academic Support", "premium": False, "note": "📚 Focus on high-yield topics using the 'Study Material' tab. Peer tutoring is the best way to clear foundational concepts securely."})
 
     if 'Social Responsibility' in black_areas:
-        opps.append({"name": "Campus NGO Orientation & Weekend Outreach", "type": "Social Responsibility", "date": "Every Sunday", "premium": False,
-                     "note": "🌱 We noticed your social involvement is a bit low right now. Don't worry, every expert was once a beginner! Try this beginner-friendly drive."})
+        opps.append({"name": "NSS / College NGO Volunteering Drives", "type": "Social Responsibility", "premium": False, "note": "🌱 We noticed your social involvement is low right now. Joining your college's NSS or a local NGO is a great stress-buster and builds empathy."})
     
     if 'Physical Health' in black_areas:
-        opps.append({"name": "Beginner's 3K Campus Run & Yoga Camp", "type": "Physical Well-being", "date": "Next Saturday", "premium": False,
-                     "note": "🏃‍♂️ Taking a break from studies is crucial. Join this easy, stress-free physical activity to refresh your mind!"})
+        opps.append({"name": "College Sports Teams or Daily Fitness Routine", "type": "Physical Well-being", "premium": False, "note": "🏃‍♂️ Taking a break from studies is crucial. Join an intramural sport or start a basic 30-minute daily workout to refresh your mind!"})
                      
     if 'Research' in black_areas and cgpa_val >= 6.0:
-        if year <= 2:
-            opps.append({"name": "Intro to Research Paper Writing Workshop", "type": "Research Skills", "date": "Upcoming Week", "premium": False,
-                         "note": "🔬 Never written a research paper? No problem! This beginner workshop is the perfect place to start."})
-        else:
-            opps.append({"name": "Final Year Thesis & Project Formatting Seminar", "type": "Research Skills", "date": "TBA", "premium": False,
-                         "note": "🔬 Essential for final year students. Learn how to document your projects properly."})
+        opps.append({"name": "Undergraduate Research Assistantship", "type": "Research Skills", "premium": False, "note": "🔬 Approach your department professors to assist in their ongoing research projects. It's the best way to learn documentation."})
                      
     if 'Literacy' in black_areas: 
         if any(k in course_lower for k in ['cs', 'computer', 'science']):
-            opps.append({"name": "Beginner GitHub & Tech Resume Workshop", "type": "Skill Development", "date": "Friday Evening", "premium": False, "note": "💡 Start building your tech portfolio! Essential for practical industry knowledge."})
-        elif any(k in course_lower for k in ['commerce', 'eco', 'finance']):
-            opps.append({"name": "Excel Basics & Financial Modeling 101", "type": "Skill Development", "date": "Friday Evening", "premium": False, "note": "💡 Practical skills matter! Learn the absolute basics used in the corporate world."})
+            opps.append({"name": "Build a Tech Portfolio & Resume", "type": "Skill Development", "premium": False, "note": "💡 Start showcasing your learning on LinkedIn. Essential for practical industry knowledge and internships."})
         else:
-            opps.append({"name": "Content Writing & Digital Communication Basics", "type": "Skill Development", "date": "Friday Evening", "premium": False, "note": "💡 Boost your communication skills for better internship opportunities."})
+            opps.append({"name": "Digital Communication & Advanced Excel", "type": "Skill Development", "premium": False, "note": "💡 Learn essential corporate skills like financial modeling, professional emailing, and content writing."})
 
     if not opps:
-        opps.append({"name": "Inter-College Innovation & Leadership Challenge", "type": "Holistic Excellence", "date": "TBA", "premium": True, "note": "🏆 You are an all-rounder! Check out this premier leadership challenge to test all your skills."})
+        opps.append({"name": "College Fest Organizing Committees", "type": "Holistic Excellence", "premium": True, "note": "🏆 You are an all-rounder! Take up leadership roles in your college's annual cultural or technical fests."})
 
     return opps
 
@@ -537,20 +497,12 @@ def process_and_score_data(df):
         except: return 1
     res['Year'] = df[sem_col].apply(get_year_from_sem) if sem_col else 1
 
-    # =================================================================
-    # 🔥 FULLY DYNAMIC CGPA CALCULATION (Independent of semester count)
-    # Automatically finds ALL columns containing "sgpa" and computes mean
-    # Completely ignores "Average CGPA" column
-    # =================================================================
     sgpa_cols = [c for c in df.columns if 'sgpa' in str(c).lower()]
     
     if len(sgpa_cols) > 0:
-        # Convert to numeric. Errors='coerce' makes blanks, '-', or "Awaited" into NaN
         numeric_sgpas = df[sgpa_cols].apply(pd.to_numeric, errors='coerce')
-        # Mean automatically ignores NaN.
         res['CGPA_Raw'] = numeric_sgpas.mean(axis=1).fillna(0.0)
     else:
-        # Fallback to 0 if literally no SGPA columns exist
         res['CGPA_Raw'] = 0.0
 
     res['Teacher_Feedback'] = df['Teacher_Feedback'] if 'Teacher_Feedback' in df.columns else "No feedback yet"
@@ -782,7 +734,8 @@ if df_raw is not None:
                         
                         personalized_opps = fetch_personalized_opportunities(white_areas, black_areas, row['Stream'], row['CGPA_Val'], row['Year'])
                         for opp in personalized_opps:
-                            st.markdown(f"- 🏆 {opp['name']} ({opp['date']}) - [{opp['type']}]")
+                            # FIX: Removed the fake hardcoded dates from the print statement
+                            st.markdown(f"- 🏆 **{opp['name']}** - [{opp['type']}]")
                             if opp['premium']:
                                 st.markdown(f"<div class='premium-note'>{opp['note']}</div>", unsafe_allow_html=True)
                             else:
