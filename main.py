@@ -367,9 +367,10 @@ def fetch_study_materials(stream_name, current_year):
             subjects = y_data.get(year_key, y_data[3])
             
             for subj in subjects:
-                # Direct SWAYAM Search Link
-                swayam_link = f"https://swayam.gov.in/explorer?keyword={subj.replace(' ', '+')}"
-                # e-PG Pathshala Link (Using Google site search constraint for exact subject hits within the portal)
+                # NEWLY UPDATED: Direct SWAYAM e-learning Search Link pointing to onlinecourses domain
+                swayam_link = f"https://www.google.com/search?q=site:onlinecourses.swayam2.ac.in+{subj.replace(' ', '+')}"
+                
+                # e-PG Pathshala Link
                 epgp_link = f"https://www.google.com/search?q=site:epgp.inflibnet.ac.in+{subj.replace(' ', '+')}"
 
                 resources[subj] = {
@@ -381,7 +382,7 @@ def fetch_study_materials(stream_name, current_year):
     if not found_match:
         resources["General Foundation & Core Subjects"] = {
             "syllabus": "Standard Undergraduate Curriculum",
-            "swayam": "https://swayam.gov.in/explorer",
+            "swayam": "https://onlinecourses.swayam2.ac.in/",
             "epgp": "https://epgp.inflibnet.ac.in/Home"
         }
 
