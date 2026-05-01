@@ -291,12 +291,6 @@ def fetch_study_materials(stream_name, current_year):
     if year_key > 3: year_key = 3
     
     resources = {}
-    resources["DU Official Exam Guidelines & Past Year Questions (PYQs)"] = {
-        "syllabus": "Official DU Portal for General Exams and Pattern",
-        "video": "https://www.youtube.com/results?search_query=Delhi+University+NEP+Exam+Pattern",
-        "pyq1": "http://exam.du.ac.in/?Past-Question-Papers",
-        "pyq3": "https://www.google.com/search?q=Delhi+University+Question+Papers+Drive+PDF"
-    }
     
     base_subjects = {
         "cs": {
@@ -325,44 +319,44 @@ def fetch_study_materials(stream_name, current_year):
             3: ["Auditing and Corporate Governance", "Fundamentals of Financial Management", "GST and Customs Law"]
         },
         "sanskrit": {
-            1: ["Classical Sanskrit Literature (Poetry)", "Critical Survey of Sanskrit Literature"],
-            2: ["Classical Sanskrit Literature (Drama)", "Poetics and Literary Criticism", "Indian Epigraphy"],
+            1: ["Classical Sanskrit Literature", "Critical Survey of Sanskrit Literature"],
+            2: ["Poetics and Literary Criticism", "Indian Epigraphy"],
             3: ["Vedic Literature", "Ayurvedic Text", "Sanskrit Linguistics"]
         },
         "history": {
-            1: ["History of India (Earliest times to c. 300 CE)", "Social Formations and Cultural Patterns of the Ancient World"],
-            2: ["History of India (c. 750-1200)", "Rise of the Modern West"],
-            3: ["History of Modern Europe", "History of India (c. 1605-1750)"]
+            1: ["History of India Earliest times", "Social Formations Ancient World"],
+            2: ["History of India c 750-1200", "Rise of the Modern West"],
+            3: ["History of Modern Europe", "History of India c 1605-1750"]
         },
         "political": {
-            1: ["Understanding Political Theory", "Constitutional Government and Democracy in India"],
-            2: ["Political Processes and Institutions in Comparative Perspective", "Public Administration in India"],
+            1: ["Understanding Political Theory", "Constitutional Government Democracy"],
+            2: ["Political Processes Institutions", "Public Administration in India"],
             3: ["Classical Political Philosophy", "Indian Political Thought"]
         },
         "english": {
             1: ["Indian Classical Literature", "European Classical Literature"],
-            2: ["British Poetry and Drama (14th to 17th Century)", "American Literature"],
+            2: ["British Poetry and Drama", "American Literature"],
             3: ["Women's Writing", "Modern European Drama", "Postcolonial Literatures"]
         },
         "physics": {
-            1: ["Mathematical Physics-I", "Mechanics"],
-            2: ["Mathematical Physics-II", "Thermal Physics", "Digital Systems and Applications"],
-            3: ["Quantum Mechanics and Applications", "Solid State Physics"]
+            1: ["Mathematical Physics", "Mechanics"],
+            2: ["Thermal Physics", "Digital Systems and Applications"],
+            3: ["Quantum Mechanics", "Solid State Physics"]
         },
         "math": {
             1: ["Calculus", "Algebra"],
-            2: ["Real Analysis", "Differential Equations", "Theory of Real Functions"],
+            2: ["Real Analysis", "Differential Equations"],
             3: ["Metric Spaces and Complex Analysis", "Ring Theory and Linear Algebra"]
         },
         "chemistry": {
-            1: ["Atomic Structure and Chemical Bonding", "States of Matter and Ionic Equilibrium", "Fundamentals of Organic Chemistry"],
-            2: ["Chemical Thermodynamics", "Solutions and Phase Equilibrium", "Chemistry of s- and p-Block Elements"],
-            3: ["Transition Elements and Coordination Chemistry", "Quantum Chemistry and Spectroscopy", "Electrochemistry"]
+            1: ["Atomic Structure and Chemical Bonding", "States of Matter", "Organic Chemistry"],
+            2: ["Chemical Thermodynamics", "Solutions and Phase Equilibrium"],
+            3: ["Transition Elements", "Quantum Chemistry and Spectroscopy"]
         },
         "physical science": {
-            1: ["Mechanics", "Atomic Structure and Chemical Bonding", "Calculus and Matrices"],
+            1: ["Mechanics", "Atomic Structure", "Calculus and Matrices"],
             2: ["Thermal Physics", "Chemical Thermodynamics", "Differential Equations"],
-            3: ["Solid State Physics", "Quantum Chemistry", "Basic Instrumentation Skills"]
+            3: ["Solid State Physics", "Quantum Chemistry"]
         }
     }
 
@@ -373,29 +367,22 @@ def fetch_study_materials(stream_name, current_year):
             subjects = y_data.get(year_key, y_data[3])
             
             for subj in subjects:
-                if keyword in ['cs', 'computer']:
-                    video_link = f"https://www.youtube.com/results?search_query=GeeksforGeeks+{subj.replace(' ', '+')}"
-                    ref_book = "Standard Computer Science Text (e.g., Cormen/Galvin/Balagurusamy) as per NEP"
-                else:
-                    video_link = f"https://www.youtube.com/results?search_query={subj.replace(' ', '+')}+University+Lectures"
-                    ref_book = f"Standard DU Recommended Reading for {subj} as per NEP"
-
-                pyq1 = f"https://www.google.com/search?q=Delhi+University+{subj.replace(' ', '+')}+PYQ+PDF"
-                pyq3 = f"https://www.google.com/search?q=DU+Buddy+{subj.replace(' ', '+')}+Previous+Year+Question+Papers"
+                # Direct SWAYAM Search Link
+                swayam_link = f"https://swayam.gov.in/explorer?keyword={subj.replace(' ', '+')}"
+                # e-PG Pathshala Link (Using Google site search constraint for exact subject hits within the portal)
+                epgp_link = f"https://www.google.com/search?q=site:epgp.inflibnet.ac.in+{subj.replace(' ', '+')}"
 
                 resources[subj] = {
-                    "syllabus": f"NEP Syllabus Guidelines & Reference Books: {ref_book}",
-                    "video": video_link,
-                    "pyq1": pyq1,
-                    "pyq3": pyq3
+                    "syllabus": f"Standard Verified Content for {subj}",
+                    "swayam": swayam_link,
+                    "epgp": epgp_link
                 }
 
     if not found_match:
-        resources["General Foundation & AEC/VAC Subjects"] = {
-            "syllabus": "NEP Syllabus Guidelines & Reference Books: DU Undergraduate Curriculum Framework (UGCF) Standard Readings",
-            "video": "https://www.youtube.com/results?search_query=Delhi+University+NEP+VAC+AEC+Lectures",
-            "pyq1": "https://www.google.com/search?q=Delhi+University+NEP+AEC+VAC+PYQ+PDF",
-            "pyq3": "https://www.google.com/search?q=DU+Buddy+NEP+Previous+Year+Question+Papers"
+        resources["General Foundation & Core Subjects"] = {
+            "syllabus": "Standard Undergraduate Curriculum",
+            "swayam": "https://swayam.gov.in/explorer",
+            "epgp": "https://epgp.inflibnet.ac.in/Home"
         }
 
     return resources
@@ -748,7 +735,6 @@ if df_raw is not None:
                         st.markdown("### 📌 Detailed Activity Log")
                         details_df = get_activity_details_df(raw_row, df_raw.columns)
                         if not details_df.empty: 
-                            # Updated column_config to use "Evidence" instead of "Proof"
                             st.dataframe(details_df, use_container_width=True, hide_index=True, column_config={"Evidence": st.column_config.LinkColumn("Evidence", display_text="View Proof 🔗")})
                         else: st.info("ℹ️ No detailed activity records found for this student.")
                         
@@ -890,8 +876,8 @@ if df_raw is not None:
         
         # --- TAB 5: STUDY MATERIAL ---
         with tab5:
-            st.markdown("<h2 class='centered-header'>📚 Study Material & NEP Syllabus Resources</h2>", unsafe_allow_html=True)
-            st.write("Access authentic curated materials, subject-specific reference books, and Past Year Questions (PYQs) aligned with DU NEP framework.")
+            st.markdown("<h2 class='centered-header'>📚 Authentic Government Study Resources</h2>", unsafe_allow_html=True)
+            st.write("Access verified study materials and modules directly from **SWAYAM** (Ministry of Education) and **e-PG Pathshala** (INFLIBNET).")
             
             sm_c1, sm_c2, sm_c3 = st.columns(3)
             sm_cat = sm_c1.selectbox("1️⃣ Select Stream Category:", [x for x in sorted(df['Category_Main'].unique()) if str(x).lower() != 'nan'], key="sm_cat")
@@ -910,20 +896,18 @@ if df_raw is not None:
                         if resources:
                             for subject, data in resources.items():
                                 st.markdown(f"""
-                                <div style="background-color: #f8f9fa; border-left: 4px solid #0d6efd; padding: 15px; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <div style="background-color: #f8f9fa; border-left: 4px solid #f26522; padding: 15px; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                                     <h4 style="margin-top: 0; margin-bottom: 8px; color: #212529;">📘 {subject}</h4>
-                                    <div style="font-size: 13.5px; color: #198754; margin-bottom: 10px; background: #e8f5e9; padding: 5px 8px; border-radius: 4px; display: inline-block;">
-                                        <b>📚 {data['syllabus']}</b>
+                                    <div style="font-size: 13.5px; color: #0f5132; margin-bottom: 12px; background: #d1e7dd; padding: 5px 8px; border-radius: 4px; display: inline-block; font-weight: 600;">
+                                        📚 {data['syllabus']}
                                     </div>
-                                    <div style="margin-bottom: 12px;">
-                                        <a href="{data['video']}" target="_blank" style="text-decoration: none; color: #dc3545; font-weight: 600; background: #ffe6e6; padding: 5px 10px; border-radius: 4px;">▶️ Watch Video Lectures</a>
-                                    </div>
-                                    <div style="font-size: 13.5px; color: #333; border-top: 1px solid #ddd; padding-top: 8px;">
-                                        <b style="color: #444;">📝 Past Year Question Papers (PYQs):</b><br>
-                                        <div style="margin-top: 5px;">
-                                            <a href="{data['pyq1']}" target="_blank" style="text-decoration: none; color: #0d6efd; margin-right: 15px;">🔍 DU Archive Search</a>
-                                            <a href="{data['pyq3']}" target="_blank" style="text-decoration: none; color: #0d6efd;">🎓 Student Portals</a>
-                                        </div>
+                                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                        <a href="{data['swayam']}" target="_blank" style="text-decoration: none; color: #fff; font-weight: 600; background: #f26522; padding: 8px 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                            🎓 Explore on SWAYAM
+                                        </a>
+                                        <a href="{data['epgp']}" target="_blank" style="text-decoration: none; color: #fff; font-weight: 600; background: #0056b3; padding: 8px 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                            🏛️ e-PG Pathshala Modules
+                                        </a>
                                     </div>
                                 </div>
                                 """, unsafe_allow_html=True)
